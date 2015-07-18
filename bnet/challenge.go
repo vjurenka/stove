@@ -1,8 +1,8 @@
 package bnet
 
 import (
-	// "github.com/HearthSim/hs-proto/go"
-	// "github.com/golang/protobuf/proto"
+	"github.com/HearthSim/hs-proto/go"
+	"github.com/golang/protobuf/proto"
 	"log"
 )
 
@@ -42,4 +42,16 @@ func (s *ChallengeNotifyService) Invoke(method int, body []byte) (resp []byte, e
 func (s *ChallengeNotifyService) Run() {
 	s.sess.WaitForTransition(StateLoggingIn)
 	log.Println("ChallengeNotify received LoggingIn event")
+	extChallengeReq, err := proto.Marshal(&hsproto.BnetProtocolChallenge_ChallengeExternalRequest{
+		PayloadType: proto.String("web_auth_url"),
+		Payload:     []byte("http://hearthsim.info"),
+	})
+	if err != nil {
+		log.Panicf("error: ChallengeNotify.Run: %v", err)
+	}
+	extChallengeHead := s.sess.MakeRequestHeader(s, 3, len(extChallengeReq))
+	err = s.sess.QueuePacket(extChallengeHead, extChallengeReq)
+	if err != nil {
+		log.Panicf("error: ChallengeNotify.Run: %v", err)
+	}
 }

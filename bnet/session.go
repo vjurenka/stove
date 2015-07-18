@@ -39,19 +39,23 @@ type Session struct {
 	// This channel contains outgoing packets.
 	packetQueue chan []byte
 
-	StateMutex  sync.Mutex // protects Session.State
-	StateChange *sync.Cond
-	State       int
+	// stateMutex protects Session.State
+	stateMutex  sync.Mutex
+	stateChange *sync.Cond
+	// state is the current state of the session; it may be any of the State
+	// consts defined above.
+	state int
 }
 
 func NewSession(s *Server, c net.Conn) *Session {
 	sess := &Session{}
 	sess.server = s
 	sess.conn = c
+	sess.importMap = map[uint32]int{}
 	sess.responses = map[uint32]chan []byte{}
 	sess.packetQueue = make(chan []byte)
-	sess.StateChange = sync.NewCond(&sess.StateMutex)
-	sess.State = StateConnecting
+	sess.stateChange = sync.NewCond(&sess.stateMutex)
+	sess.state = StateConnecting
 	// The connection service export is implicity bound at index 0:
 	sess.BindExport(0, Hash("bnet.protocol.connection.ConnectionService"))
 	go sess.pumpPacketQueue()
@@ -88,6 +92,7 @@ func (s *Session) BindImport(index int, hash uint32) {
 		s.imports = append(s.imports, make([]Service, padLen)...)
 	}
 	s.imports[index] = service
+	s.importMap[hash] = index
 }
 
 func (s *Session) QueuePacket(header *hsproto.BnetProtocol_Header, buf []byte) error {
@@ -194,20 +199,23 @@ func (s *Session) HandleRequest(serviceId, methodId int, body []byte) (resp []by
 	return resp
 }
 
+// Transition updates the session's state with the value provided, and notifies
+// any listeners of that state update.
 func (s *Session) Transition(state int) {
-	s.StateMutex.Lock()
-	currState := s.State
-	s.State = state
-	s.StateMutex.Unlock()
+	s.stateMutex.Lock()
+	currState := s.state
+	s.state = state
+	s.stateMutex.Unlock()
 	if state != currState {
-		s.StateChange.Broadcast()
+		s.stateChange.Broadcast()
 	}
 }
 
+// WaitForTransition blocks until the session state matches the value provided.
 func (s *Session) WaitForTransition(state int) {
-	s.StateMutex.Lock()
-	defer s.StateMutex.Unlock()
-	for s.State != state {
-		s.StateChange.Wait()
+	s.stateMutex.Lock()
+	defer s.stateMutex.Unlock()
+	for s.state != state {
+		s.stateChange.Wait()
 	}
 }
