@@ -7,14 +7,14 @@ import (
 	"time"
 )
 
-type ConnectionService struct {
-	sess *Session
-}
-
 type ConnectionServiceBinder struct{}
 
 func (ConnectionServiceBinder) Bind(sess *Session) Service {
 	return &ConnectionService{sess}
+}
+
+type ConnectionService struct {
+	sess *Session
 }
 
 func (s *ConnectionService) Name() string {
@@ -71,6 +71,18 @@ func (s *ConnectionService) Connect(body []byte) ([]byte, error) {
 		s.sess.BindExport(serviceId, exportRequest)
 		serviceId += 1
 	}
+	for _, clientExport := range bindReq.GetExportedService() {
+		hash := clientExport.GetHash()
+		id := clientExport.GetId()
+		// Place a sane upper bound on client export ids:
+		if id > 255 {
+			log.Panicf("client export id overflowed")
+		}
+		s.sess.BindImport(int(id), hash)
+	}
+
+	s.sess.Transition(StateConnected)
+
 	now := time.Now()
 	nowNano := uint64(now.UnixNano())
 	nowSec := uint32(now.Unix())
