@@ -11,8 +11,10 @@ type ConnectionService struct {
 	sess *Session
 }
 
-func NewConnectionService(s *Session) *ConnectionService {
-	return &ConnectionService{s}
+type ConnectionServiceBinder struct{}
+
+func (ConnectionServiceBinder) Bind(sess *Session) Service {
+	return &ConnectionService{sess}
 }
 
 func (s *ConnectionService) Name() string {
@@ -65,8 +67,8 @@ func (s *ConnectionService) Connect(body []byte) ([]byte, error) {
 	serviceId := len(s.sess.exports)
 	exportedServiceIds := []uint32{}
 	for _, exportRequest := range bindReq.GetImportedServiceHash() {
-		log.Printf("client requests export of service with hash %x\n", exportRequest)
 		exportedServiceIds = append(exportedServiceIds, uint32(serviceId))
+		s.sess.BindExport(serviceId, exportRequest)
 		serviceId += 1
 	}
 	now := time.Now()

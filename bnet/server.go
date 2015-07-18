@@ -10,6 +10,9 @@ import (
 	"time"
 )
 
+// Use nyi to error from unimplemented service methods.
+var nyi = fmt.Errorf("nyi")
+
 // A Service is a set of RPC methods bound to a particular Session.
 type Service interface {
 	// Name returns the fully qualified name of the service.
@@ -22,22 +25,39 @@ type Service interface {
 	Invoke(method int, body []byte) (resp []byte, err error)
 }
 
-var nyi = fmt.Errorf("nyi")
+type ServiceBinder interface {
+	// Bind binds a service to a session.  Passing nil will give a default
+	// instance which can be used to inspect the service and method names.
+	Bind(sess *Session) Service
+}
 
-// Hash returns the hash by which the service is described.
-func ServiceHash(s Service) uint32 {
+// Hash returns the fnv32a hash of the string.
+func Hash(s string) uint32 {
 	h := fnv.New32a()
-	h.Write([]byte(s.Name()))
+	h.Write([]byte(s))
 	return h.Sum32()
 }
 
+// ServiceHash returns a hash of the service's fully qualified name.
+func ServiceHash(binder ServiceBinder) uint32 {
+	s := binder.Bind(nil)
+	return Hash(s.Name())
+}
+
 type Server struct {
-	registeredServices []Service
+	// Registered services are mapped by their service hash to a service binder.
+	registeredServices map[uint32]ServiceBinder
 }
 
 func NewServer() *Server {
 	s := &Server{}
+	s.registeredServices = map[uint32]ServiceBinder{}
+	s.registerService(ConnectionServiceBinder{})
 	return s
+}
+
+func (s *Server) registerService(binder ServiceBinder) {
+	s.registeredServices[ServiceHash(binder)] = binder
 }
 
 func (s *Server) ListenAndServe(addr string) error {
@@ -58,8 +78,8 @@ func (s *Server) handleClient(c net.Conn) {
 	c.SetDeadline(time.Time{})
 
 	sess := NewSession(s, c)
-	// The connection service is implicity exported:
-	sess.Export(0, NewConnectionService(sess))
+	// The connection service export is implicity bound at index 0:
+	sess.BindExport(0, Hash("bnet.protocol.connection.ConnectionService"))
 
 	buf := make([]byte, 0x1000)
 	for {
@@ -119,7 +139,16 @@ func NewSession(s *Server, c net.Conn) *Session {
 	return sess
 }
 
-func (s *Session) Export(index int, service Service) {
+func (s *Session) BindExport(index int, hash uint32) {
+	var service Service = nil
+	binder, ok := s.server.registeredServices[hash]
+	if !ok {
+		log.Printf("warn: Session.BindExport: unknown service hash: %x", hash)
+		// We still want to put a nil in the slot, so that we panic when the
+		// service is invoked.
+	} else {
+		service = binder.Bind(s)
+	}
 	if index >= len(s.exports) {
 		padLen := (1 + index) - len(s.exports)
 		s.exports = append(s.exports, make([]Service, padLen)...)
@@ -127,7 +156,14 @@ func (s *Session) Export(index int, service Service) {
 	s.exports[index] = service
 }
 
-func (s *Session) Import(index int, service Service) {
+func (s *Session) BindImport(index int, hash uint32) {
+	var service Service = nil
+	binder, ok := s.server.registeredServices[hash]
+	if !ok {
+		log.Printf("warn: Session.BindImport: unknown service hash: %x", hash)
+	} else {
+		service = binder.Bind(s)
+	}
 	if index >= len(s.imports) {
 		padLen := (1 + index) - len(s.imports)
 		s.imports = append(s.imports, make([]Service, padLen)...)
@@ -166,7 +202,7 @@ func (s *Session) HandlePacket(header *hsproto.BnetProtocol_Header, body []byte)
 			respHead := hsproto.BnetProtocol_Header{
 				ServiceId: proto.Uint32(254),
 				MethodId:  proto.Uint32(0),
-				Token:     proto.Uint32(header.GetToken()),
+				Token:     header.Token,
 				Size:      proto.Uint32(uint32(len(resp))),
 			}
 			err := s.Write(&respHead, resp)
