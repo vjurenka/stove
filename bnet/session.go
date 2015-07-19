@@ -126,20 +126,6 @@ func (s *Session) pumpPacketQueue() {
 	}
 }
 
-func MakePacket(header *hsproto.BnetProtocol_Header, buf []byte) ([]byte, error) {
-	headerBuf, err := proto.Marshal(header)
-	if err != nil {
-		return nil, err
-	}
-	headerLen := len(headerBuf)
-	packet := make([]byte, 2+headerLen+len(buf))
-	packet[0] = byte(headerLen >> 8)
-	packet[1] = byte(headerLen & 0xff)
-	copy(packet[2:], headerBuf)
-	copy(packet[2+headerLen:], buf)
-	return packet, nil
-}
-
 func (s *Session) MakeRequestHeader(service Service, methodId, size int) *hsproto.BnetProtocol_Header {
 	serviceId, ok := s.importMap[Hash(service.Name())]
 	if !ok {

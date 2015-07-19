@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/HearthSim/hs-proto/go"
 	"github.com/golang/protobuf/proto"
-	"hash/fnv"
 	"log"
 	"net"
 	"time"
@@ -25,17 +24,12 @@ type Service interface {
 	Invoke(method int, body []byte) (resp []byte, err error)
 }
 
+// A ServiceBinder is used to create instances of a service bound to individual
+// sessions.
 type ServiceBinder interface {
 	// Bind binds a service to a session.  Passing nil will give a default
 	// instance which can be used to inspect the service and method names.
 	Bind(sess *Session) Service
-}
-
-// Hash returns the fnv32a hash of the string.
-func Hash(s string) uint32 {
-	h := fnv.New32a()
-	h.Write([]byte(s))
-	return h.Sum32()
 }
 
 // ServiceHash returns a hash of the service's fully qualified name.
@@ -44,6 +38,8 @@ func ServiceHash(binder ServiceBinder) uint32 {
 	return Hash(s.Name())
 }
 
+// A Server accepts client connections and processes each connection as a
+// Session.
 type Server struct {
 	// Registered services are mapped by their service hash to a service binder.
 	registeredServices map[uint32]ServiceBinder
@@ -65,6 +61,8 @@ func (s *Server) registerService(binder ServiceBinder) {
 	s.registeredServices[ServiceHash(binder)] = binder
 }
 
+// ListenAndServe listens for incoming connections on the specified address
+// indefinitely, handling each connection as a new Session.
 func (s *Server) ListenAndServe(addr string) error {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {

@@ -16,6 +16,8 @@ func (ChallengeNotifyServiceBinder) Bind(sess *Session) Service {
 	return service
 }
 
+// The ChallengeNotify service is implemented by the client to allow the server
+// to request the client provide proof of authentication.
 type ChallengeNotifyService struct {
 	sess *Session
 }

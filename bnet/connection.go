@@ -13,6 +13,9 @@ func (ConnectionServiceBinder) Bind(sess *Session) Service {
 	return &ConnectionService{sess}
 }
 
+// The Connection service is the default service that manages the RPC binding
+// process for other services and also handles low-level functions like pings,
+// errors resulting in disconnection, and elevations to encrypted streams.
 type ConnectionService struct {
 	sess *Session
 }

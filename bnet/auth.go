@@ -14,6 +14,9 @@ func (AuthServerServiceBinder) Bind(sess *Session) Service {
 	return res
 }
 
+// The AuthServer service handles Logon requests.  This implementation does not
+// use the Module system but instead relies on a pre-shared WebAuth token to
+// authenticate the client.
 type AuthServerService struct {
 	sess *Session
 
@@ -137,6 +140,8 @@ func (AuthClientServiceBinder) Bind(sess *Session) Service {
 	return service
 }
 
+// The AuthClient service is implemented by the client to handle auth modules
+// and Logon results.
 type AuthClientService struct {
 	sess *Session
 }
