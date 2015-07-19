@@ -50,7 +50,12 @@ func NewServer() *Server {
 	s.registeredServices = map[uint32]ServiceBinder{}
 	s.registerService(ConnectionServiceBinder{})
 	// Server exports:
+	s.registerService(AccountServiceBinder{})
 	s.registerService(AuthServerServiceBinder{})
+	s.registerService(ChannelInvitationServiceBinder{})
+	s.registerService(FriendsServiceBinder{})
+	s.registerService(PresenceServiceBinder{})
+	s.registerService(ResourcesServiceBinder{})
 	// Client exports:
 	s.registerService(AuthClientServiceBinder{})
 	s.registerService(ChallengeNotifyServiceBinder{})

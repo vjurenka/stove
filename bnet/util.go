@@ -33,6 +33,8 @@ func MakePacket(header *hsproto.BnetProtocol_Header, buf []byte) ([]byte, error)
 	packet[0] = byte(headerLen >> 8)
 	packet[1] = byte(headerLen & 0xff)
 	copy(packet[2:], headerBuf)
-	copy(packet[2+headerLen:], buf)
+	if len(buf) > 0 {
+		copy(packet[2+headerLen:], buf)
+	}
 	return packet, nil
 }

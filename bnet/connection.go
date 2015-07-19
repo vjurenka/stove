@@ -125,7 +125,7 @@ func (s *ConnectionService) ForceDisconnect(body []byte) error {
 }
 
 func (s *ConnectionService) KeepAlive(body []byte) error {
-	return nyi
+	return nil
 }
 
 func (s *ConnectionService) Encrypt(body []byte) error {

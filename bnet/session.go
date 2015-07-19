@@ -67,7 +67,7 @@ func (s *Session) BindExport(index int, hash uint32) {
 	var service Service = nil
 	binder, ok := s.server.registeredServices[hash]
 	if !ok {
-		log.Printf("warn: Session.BindExport: unknown service hash: %x", hash)
+		log.Printf("warn: Session.BindExport: unknown service: %d=%x", index, hash)
 		// We still want to put a nil in the slot, so that we panic when the
 		// service is invoked.
 	} else {
@@ -84,7 +84,7 @@ func (s *Session) BindImport(index int, hash uint32) {
 	var service Service = nil
 	binder, ok := s.server.registeredServices[hash]
 	if !ok {
-		log.Printf("warn: Session.BindImport: unknown service hash: %x", hash)
+		log.Printf("warn: Session.BindImport: unknown service: %d=%x", index, hash)
 	} else {
 		service = binder.Bind(s)
 	}

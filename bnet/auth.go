@@ -73,6 +73,7 @@ func (s *AuthServerService) Logon(body []byte) error {
 	log.Printf("req = %s", req.String())
 	log.Printf("logon request from %s", req.GetEmail())
 	s.client = s.sess.ImportedService("bnet.protocol.authentication.AuthenticationClient").(*AuthClientService)
+	s.FinishQueue()
 	s.sess.Transition(StateLoggingIn)
 	return nil
 }
@@ -86,7 +87,13 @@ func (s *AuthServerService) ModuleMessage(body []byte) error {
 }
 
 func (s *AuthServerService) SelectGameAccount_DEPRECATED(body []byte) error {
-	return nyi
+	req := hsproto.BnetProtocol_EntityId{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return err
+	}
+	log.Printf("req = %s", req.String())
+	return nil
 }
 
 func (s *AuthServerService) GenerateTempCookie(body []byte) ([]byte, error) {
@@ -131,6 +138,22 @@ func (s *AuthServerService) CompleteLogin() error {
 		return err
 	}
 	return nil
+}
+
+func (s *AuthServerService) FinishQueue() {
+	update := hsproto.BnetProtocolAuthentication_LogonQueueUpdateRequest{}
+	update.Position = proto.Uint32(0)
+	update.EstimatedTime = proto.Uint64(0)
+	update.EtaDeviationInSec = proto.Uint64(0)
+	updateBody, err := proto.Marshal(&update)
+	if err != nil {
+		log.Panicf("FinishQueue: %v", err)
+	}
+	updateHeader := s.sess.MakeRequestHeader(s.client, 12, len(updateBody))
+	s.sess.QueuePacket(updateHeader, updateBody)
+
+	endHeader := s.sess.MakeRequestHeader(s.client, 13, 0)
+	s.sess.QueuePacket(endHeader, nil)
 }
 
 type AuthClientServiceBinder struct{}
