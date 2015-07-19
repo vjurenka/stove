@@ -110,9 +110,9 @@ func (s *AuthServerService) VerifyWebCredentials(body []byte) error {
 func (s *AuthServerService) CompleteLogin() error {
 	res := hsproto.BnetProtocolAuthentication_LogonResult{}
 	if !s.loggedIn {
-		res.ErrorCode = proto.Uint32(10)
+		res.ErrorCode = proto.Uint32(ErrorNoAuth)
 	} else {
-		res.ErrorCode = proto.Uint32(0)
+		res.ErrorCode = proto.Uint32(ErrorOK)
 		res.Account = EntityId(0, 1)
 		res.GameAccount = make([]*hsproto.BnetProtocol_EntityId, 1)
 		res.GameAccount[0] = EntityId(1, 1)
