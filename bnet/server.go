@@ -53,7 +53,10 @@ func NewServer() *Server {
 	s := &Server{}
 	s.registeredServices = map[uint32]ServiceBinder{}
 	s.registerService(ConnectionServiceBinder{})
+	// Server exports:
 	s.registerService(AuthServerServiceBinder{})
+	// Client exports:
+	s.registerService(AuthClientServiceBinder{})
 	s.registerService(ChallengeNotifyServiceBinder{})
 	return s
 }
@@ -100,14 +103,18 @@ func (s *Server) handleClient(c net.Conn) {
 			log.Panicf("error: Server.handleClient: header decode: %v", err)
 		}
 		bodyLen := int(header.GetSize())
-		if bodyLen > len(buf) {
-			buf = append(buf, make([]byte, bodyLen-len(buf))...)
+		var body []byte
+		if bodyLen > 0 {
+			if bodyLen > len(buf) {
+				buf = append(buf, make([]byte, bodyLen-len(buf))...)
+			}
+			body = buf[:bodyLen]
+			_, err = sess.conn.Read(body)
+			if err != nil {
+				log.Panicf("error: Server.handleClient: body read: %v", err)
+			}
 		}
-		_, err = sess.conn.Read(buf[:bodyLen])
-		if err != nil {
-			log.Panicf("error: Server.handleClient: body read: %v", err)
-		}
-		log.Printf("handling packet %s %x", header.String(), buf[:bodyLen])
-		sess.HandlePacket(&header, buf[:bodyLen])
+		log.Printf("handling packet %s %x", header.String(), body)
+		sess.HandlePacket(&header, body)
 	}
 }

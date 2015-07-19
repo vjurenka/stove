@@ -58,6 +58,7 @@ func NewSession(s *Server, c net.Conn) *Session {
 	sess.state = StateConnecting
 	// The connection service export is implicity bound at index 0:
 	sess.BindExport(0, Hash("bnet.protocol.connection.ConnectionService"))
+	sess.BindImport(0, Hash("bnet.protocol.connection.ConnectionService"))
 	go sess.pumpPacketQueue()
 	return sess
 }
@@ -93,6 +94,15 @@ func (s *Session) BindImport(index int, hash uint32) {
 	}
 	s.imports[index] = service
 	s.importMap[hash] = index
+}
+
+func (s *Session) ImportedService(name string) Service {
+	for _, imp := range s.imports {
+		if imp.Name() == name {
+			return imp
+		}
+	}
+	return nil
 }
 
 func (s *Session) QueuePacket(header *hsproto.BnetProtocol_Header, buf []byte) error {
@@ -156,7 +166,6 @@ func (s *Session) HandlePacket(header *hsproto.BnetProtocol_Header, body []byte)
 		if resp != nil {
 			respHead := hsproto.BnetProtocol_Header{
 				ServiceId: proto.Uint32(254),
-				MethodId:  proto.Uint32(0),
 				Token:     header.Token,
 				Size:      proto.Uint32(uint32(len(resp))),
 			}
