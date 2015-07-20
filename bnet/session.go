@@ -102,7 +102,7 @@ func (s *Session) BindImport(index int, hash uint32) {
 
 func (s *Session) ImportedService(name string) Service {
 	for _, imp := range s.imports {
-		if imp.Name() == name {
+		if imp != nil && imp.Name() == name {
 			return imp
 		}
 	}
