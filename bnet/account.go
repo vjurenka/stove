@@ -44,13 +44,7 @@ func (s *AccountService) Methods() []string {
 	res[34] = "GetGameSessionInfo"
 	res[35] = "GetCAISInfo"
 	res[36] = "ForwardCacheExpire"
-	return []string{
-		"",
-		"Subscribe",
-		"Unsubscribe",
-		"Update",
-		"Query",
-	}
+	return res
 }
 
 func (s *AccountService) Invoke(method int, body []byte) (resp []byte, err error) {
@@ -168,11 +162,7 @@ func (s *AccountService) GetAccountState(body []byte) ([]byte, error) {
 		}
 		res.State.AccountLevelInfo = levelInfo
 	}
-	resBuf, err := proto.Marshal(&res)
-	if err != nil {
-		return nil, err
-	}
-	return resBuf, nil
+	return proto.Marshal(&res)
 }
 
 func (s *AccountService) GetGameAccountState(body []byte) ([]byte, error) {
@@ -188,7 +178,16 @@ func (s *AccountService) GetGameTimeRemainingInfo(body []byte) ([]byte, error) {
 }
 
 func (s *AccountService) GetGameSessionInfo(body []byte) ([]byte, error) {
-	return nil, nyi
+	req := hsproto.BnetProtocolAccount_GetGameSessionInfoRequest{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("req = %s", req.String())
+	res := hsproto.BnetProtocolAccount_GetGameSessionInfoResponse{}
+	res.SessionInfo = &hsproto.BnetProtocolAccount_GameSessionInfo{}
+	res.SessionInfo.StartTime = proto.Uint32(uint32(s.sess.startedPlaying.Unix()))
+	return proto.Marshal(&res)
 }
 
 func (s *AccountService) GetCAISInfo(body []byte) ([]byte, error) {

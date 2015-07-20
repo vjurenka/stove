@@ -39,9 +39,5 @@ func OnUtilSubscribe(s *Session, body []byte) ([]byte, error) {
 	res.Route = proto.Uint64(s.route)
 	res.SupportedFeatures = proto.Uint64(3)
 	res.KeepAliveSecs = proto.Uint64(uint64(s.timeout.Seconds()))
-	resBody, err := proto.Marshal(&res)
-	if err != nil {
-		return nil, err
-	}
-	return EncodeUtilResponse(315, resBody)
+	return EncodeUtilResponse(315, &res)
 }

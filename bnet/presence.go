@@ -65,7 +65,13 @@ func (s *PresenceService) Unsubscribe(body []byte) error {
 }
 
 func (s *PresenceService) Update(body []byte) error {
-	return nyi
+	req := hsproto.BnetProtocolPresence_UpdateRequest{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return err
+	}
+	log.Printf("req = %s", req.String())
+	return nil
 }
 
 func (s *PresenceService) Query(body []byte) error {

@@ -4,6 +4,7 @@ import (
 	"github.com/HearthSim/hs-proto/go"
 	"github.com/golang/protobuf/proto"
 	"log"
+	"time"
 )
 
 type AuthServerServiceBinder struct{}
@@ -133,6 +134,7 @@ func (s *AuthServerService) CompleteLogin() error {
 		if s.program == "WTCG" {
 			s.sess.game = s.sess.server.ConnectGameServer(s.sess, s.program)
 		}
+		s.sess.startedPlaying = time.Now()
 	}
 	resBody, err := proto.Marshal(&res)
 	if err != nil {

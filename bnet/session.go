@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"sync"
+	"time"
 )
 
 const (
@@ -46,7 +47,8 @@ type Session struct {
 	// consts defined above.
 	state int
 
-	game GameSession
+	game           GameSession
+	startedPlaying time.Time
 }
 
 func NewSession(s *Server, c net.Conn) *Session {

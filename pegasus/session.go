@@ -12,7 +12,9 @@ type Session struct {
 	host     *bnet.Session
 	handlers map[int]UtilHandler
 
+	Account
 	Subscription
+	Version
 }
 
 func NewSession(s *Server, hostSess *bnet.Session) *Session {
@@ -22,6 +24,8 @@ func NewSession(s *Server, hostSess *bnet.Session) *Session {
 	sess.handlers = map[int]UtilHandler{}
 
 	sess.Subscription.Init(sess)
+	sess.Version.Init(sess)
+	sess.Account.Init(sess)
 	return sess
 }
 

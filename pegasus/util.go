@@ -5,8 +5,13 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-// EncodeUtilResponse builds a buffer encoding the response packetId and body.
-func EncodeUtilResponse(packetId int32, body []byte) ([]byte, error) {
+// EncodeUtilResponse builds a buffer encoding the response packetId and the
+// protobuf message.
+func EncodeUtilResponse(packetId int32, msg proto.Message) ([]byte, error) {
+	body, err := proto.Marshal(msg)
+	if err != nil {
+		return nil, err
+	}
 	res := hsproto.BnetProtocolGameUtilities_ClientResponse{}
 	res.Attribute = make([]*hsproto.BnetProtocolAttribute_Attribute, 2)
 	res.Attribute[0] = &hsproto.BnetProtocolAttribute_Attribute{
