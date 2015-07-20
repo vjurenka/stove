@@ -61,43 +61,19 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		return EncodeUtilResponse(233, &res)
 	case "BOOSTERS":
 		res := hsproto.PegasusUtil_BoosterList{}
-		res.List = []*hsproto.PegasusShared_BoosterInfo{
-			&hsproto.PegasusShared_BoosterInfo{
-				Type: proto.Int32(1), // Expert
-			},
-			&hsproto.PegasusShared_BoosterInfo{
-				Type: proto.Int32(9), // GVG
-			},
-		}
 		return EncodeUtilResponse(224, &res)
 	case "FEATURES":
 		res := hsproto.PegasusUtil_GuardianVars{}
-		res.Practice = proto.Bool(true)
-		res.Casual = proto.Bool(true)
-		res.Forge = proto.Bool(true)
-		res.Friendly = proto.Bool(true)
 		res.ShowUserUI = proto.Int32(1)
-		res.Manager = proto.Bool(true)
-		res.Crafting = proto.Bool(true)
-		res.Store = proto.Bool(true)
-		res.BuyWithGold = proto.Bool(true)
-		res.Hunter = proto.Bool(true)
-		res.Mage = proto.Bool(true)
-		res.Paladin = proto.Bool(true)
-		res.Priest = proto.Bool(true)
-		res.Rogue = proto.Bool(true)
-		res.Shaman = proto.Bool(true)
-		res.Warlock = proto.Bool(true)
-		res.Warrior = proto.Bool(true)
 		return EncodeUtilResponse(264, &res)
 	case "MEDAL_INFO":
 		res := hsproto.PegasusUtil_MedalInfo{}
-		res.SeasonWins = proto.Int32(123)
-		res.Stars = proto.Int32(0)
+		res.SeasonWins = proto.Int32(0)
+		res.Stars = proto.Int32(2)
 		res.Streak = proto.Int32(0)
 		res.StarLevel = proto.Int32(1)
 		res.LevelStart = proto.Int32(1)
-		res.LevelEnd = proto.Int32(1)
+		res.LevelEnd = proto.Int32(3)
 		res.CanLose = proto.Bool(false)
 		return EncodeUtilResponse(232, &res)
 	case "NOTICES":
@@ -105,18 +81,20 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		return EncodeUtilResponse(212, &res)
 	case "DECK_LIST":
 		res := hsproto.PegasusUtil_DeckList{}
-		info := &hsproto.PegasusShared_DeckInfo{}
-		info.Id = proto.Int64(1)
-		info.Name = proto.String("Basic Mage")
-		info.CardBack = proto.Int32(0)
-		info.Hero = proto.Int32(637) // DBF id of HERO_08
-		precon := hsproto.PegasusShared_DeckType_PRECON_DECK
-		info.DeckType = &precon
-		info.Validity = proto.Uint64(127)
-		info.HeroPremium = proto.Int32(0)
-		info.CardBackOverride = proto.Bool(false)
-		info.HeroOverride = proto.Bool(false)
-		res.Decks = append(res.Decks, info)
+		for i := 2; i <= 10; i++ {
+			info := &hsproto.PegasusShared_DeckInfo{}
+			info.Id = proto.Int64(int64(1000 + i))
+			info.Name = proto.String("precon")
+			info.CardBack = proto.Int32(0)
+			info.Hero = proto.Int32(int32(heroIdToAssetId[i]))
+			precon := hsproto.PegasusShared_DeckType_PRECON_DECK
+			info.DeckType = &precon
+			info.Validity = proto.Uint64(31)
+			info.HeroPremium = proto.Int32(0)
+			info.CardBackOverride = proto.Bool(false)
+			info.HeroOverride = proto.Bool(false)
+			res.Decks = append(res.Decks, info)
+		}
 		return EncodeUtilResponse(202, &res)
 	case "COLLECTION":
 		res := hsproto.PegasusUtil_Collection{}
@@ -135,8 +113,8 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		return EncodeUtilResponse(262, &res)
 	case "GOLD_BALANCE":
 		res := hsproto.PegasusUtil_GoldBalance{}
-		res.Cap = proto.Int64(20000)
-		res.CapWarning = proto.Int64(19500)
+		res.Cap = proto.Int64(999999)
+		res.CapWarning = proto.Int64(2000)
 		res.CappedBalance = proto.Int64(1234)
 		res.BonusBalance = proto.Int64(0)
 		return EncodeUtilResponse(278, &res)
@@ -163,11 +141,11 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		res.WinsPerGold = proto.Int32(3)
 		res.GoldPerReward = proto.Int32(10)
 		res.MaxGoldPerDay = proto.Int32(100)
-		res.SeasonNumber = proto.Int32(16)
-		res.XpSoloLimit = proto.Int32(1000)
+		res.SeasonNumber = proto.Int32(21)
+		res.XpSoloLimit = proto.Int32(60)
 		res.MaxHeroLevel = proto.Int32(60)
 		res.NextQuestCancel = PegasusDate(time.Now().UTC())
-		res.EventTimingMod = proto.Float32(30)
+		res.EventTimingMod = proto.Float32(0.291667)
 		return EncodeUtilResponse(271, &res)
 	case "PLAYER_RECORD":
 		res := hsproto.PegasusUtil_PlayerRecords{}
@@ -215,6 +193,18 @@ func OnGetOptions(s *Session, body []byte) ([]byte, error) {
 	}
 	log.Printf("req = %s", req.String())
 	res := hsproto.PegasusUtil_ClientOptions{}
+	res.Options = append(res.Options, &hsproto.PegasusUtil_ClientOption{
+		Index:    proto.Int32(1),
+		AsUint64: proto.Uint64(0x20FFFF3FFFCCFCFF),
+	})
+	res.Options = append(res.Options, &hsproto.PegasusUtil_ClientOption{
+		Index:    proto.Int32(2),
+		AsUint64: proto.Uint64(0xF0BFFFEF3FFF),
+	})
+	res.Options = append(res.Options, &hsproto.PegasusUtil_ClientOption{
+		Index:   proto.Int32(18),
+		AsInt64: proto.Int64(0xB765A8C),
+	})
 	return EncodeUtilResponse(241, &res)
 }
 
@@ -226,6 +216,16 @@ func OnGetAchieves(s *Session, body []byte) ([]byte, error) {
 	}
 	log.Printf("req = %s", req.String())
 	res := hsproto.PegasusUtil_Achieves{}
+	for i := 1; i <= 9; i++ {
+		info := &hsproto.PegasusUtil_Achieve{}
+		info.Id = proto.Int32(int32(i))
+		info.Progress = proto.Int32(1)
+		info.AckProgress = proto.Int32(1)
+		info.CompletionCount = proto.Int32(1)
+		info.StartedCount = proto.Int32(1)
+		info.DateGiven = PegasusDate(time.Now())
+		res.List = append(res.List, info)
+	}
 	return EncodeUtilResponse(252, &res)
 }
 
@@ -238,4 +238,17 @@ func PegasusDate(t time.Time) *hsproto.PegasusShared_Date {
 		Min:   proto.Int32(int32(t.Minute())),
 		Sec:   proto.Int32(int32(t.Second())),
 	}
+}
+
+// A map from TAG_CLASS ids to DBF ids
+var heroIdToAssetId = map[int]int{
+	2:  274,
+	3:  31,
+	4:  637,
+	5:  671,
+	6:  813,
+	7:  930,
+	8:  1066,
+	9:  893,
+	10: 7,
 }
