@@ -2,8 +2,11 @@ package main
 
 import (
 	"github.com/HearthSim/stove/bnet"
+	"github.com/HearthSim/stove/pegasus"
 )
 
 func main() {
-	bnet.NewServer().ListenAndServe("localhost:1119")
+	serv := bnet.NewServer()
+	serv.RegisterGameServer("WTCG", pegasus.NewServer(serv))
+	serv.ListenAndServe("localhost:1119")
 }

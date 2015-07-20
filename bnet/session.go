@@ -45,6 +45,8 @@ type Session struct {
 	// state is the current state of the session; it may be any of the State
 	// consts defined above.
 	state int
+
+	game GameSession
 }
 
 func NewSession(s *Server, c net.Conn) *Session {

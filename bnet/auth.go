@@ -20,6 +20,7 @@ func (AuthServerServiceBinder) Bind(sess *Session) Service {
 type AuthServerService struct {
 	sess *Session
 
+	program  string
 	email    string
 	loggedIn bool
 	client   *AuthClientService
@@ -71,6 +72,7 @@ func (s *AuthServerService) Logon(body []byte) error {
 		return err
 	}
 	log.Printf("req = %s", req.String())
+	s.program = req.GetProgram()
 	log.Printf("logon request from %s", req.GetEmail())
 	s.client = s.sess.ImportedService("bnet.protocol.authentication.AuthenticationClient").(*AuthClientService)
 	s.FinishQueue()
@@ -127,6 +129,10 @@ func (s *AuthServerService) CompleteLogin() error {
 		res.GameAccount = make([]*hsproto.BnetProtocol_EntityId, 1)
 		res.GameAccount[0] = EntityId(1, 1)
 		res.ConnectedRegion = proto.Uint32(0x5553) // 'US'
+
+		if s.program == "WTCG" {
+			s.sess.game = s.sess.server.ConnectGameServer(s.sess, s.program)
+		}
 	}
 	resBody, err := proto.Marshal(&res)
 	if err != nil {

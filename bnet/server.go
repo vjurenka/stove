@@ -43,23 +43,34 @@ func ServiceHash(binder ServiceBinder) uint32 {
 type Server struct {
 	// Registered services are mapped by their service hash to a service binder.
 	registeredServices map[uint32]ServiceBinder
+
+	// Registered game servers are mapped by their product FourCCs.
+	gameServers map[string]GameServer
 }
 
 func NewServer() *Server {
 	s := &Server{}
 	s.registeredServices = map[uint32]ServiceBinder{}
+	s.gameServers = map[string]GameServer{}
+
 	s.registerService(ConnectionServiceBinder{})
 	// Server exports:
 	s.registerService(AccountServiceBinder{})
 	s.registerService(AuthServerServiceBinder{})
 	s.registerService(ChannelInvitationServiceBinder{})
 	s.registerService(FriendsServiceBinder{})
+	s.registerService(GameUtilitiesServiceBinder{})
 	s.registerService(PresenceServiceBinder{})
 	s.registerService(ResourcesServiceBinder{})
 	// Client exports:
 	s.registerService(AuthClientServiceBinder{})
 	s.registerService(ChallengeNotifyServiceBinder{})
+
 	return s
+}
+
+func (s *Server) RegisterGameServer(fourcc string, serv GameServer) {
+	s.gameServers[fourcc] = serv
 }
 
 func (s *Server) registerService(binder ServiceBinder) {
@@ -80,6 +91,14 @@ func (s *Server) ListenAndServe(addr string) error {
 		}
 		go s.handleClient(c)
 	}
+}
+
+func (s *Server) ConnectGameServer(client *Session, program string) GameSession {
+	if serv, ok := s.gameServers[program]; ok {
+		return serv.Connect(client)
+	}
+	log.Panicf("Server.ConnectGameServer: unregistered game: %s", program)
+	return nil
 }
 
 func (s *Server) handleClient(c net.Conn) {
