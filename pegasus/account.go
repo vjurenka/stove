@@ -105,6 +105,18 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		return EncodeUtilResponse(212, &res)
 	case "DECK_LIST":
 		res := hsproto.PegasusUtil_DeckList{}
+		info := &hsproto.PegasusShared_DeckInfo{}
+		info.Id = proto.Int64(1)
+		info.Name = proto.String("Basic Mage")
+		info.CardBack = proto.Int32(0)
+		info.Hero = proto.Int32(637) // DBF id of HERO_08
+		precon := hsproto.PegasusShared_DeckType_PRECON_DECK
+		info.DeckType = &precon
+		info.Validity = proto.Uint64(127)
+		info.HeroPremium = proto.Int32(0)
+		info.CardBackOverride = proto.Bool(false)
+		info.HeroOverride = proto.Bool(false)
+		res.Decks = append(res.Decks, info)
 		return EncodeUtilResponse(202, &res)
 	case "COLLECTION":
 		res := hsproto.PegasusUtil_Collection{}
@@ -226,22 +238,4 @@ func PegasusDate(t time.Time) *hsproto.PegasusShared_Date {
 		Min:   proto.Int32(int32(t.Minute())),
 		Sec:   proto.Int32(int32(t.Second())),
 	}
-}
-
-var basicMageCardIds = []string{
-	"CS2_179", // Sen'jin Shieldmasta
-	"CS2_119", // Oasis Snapjaw
-	"CS2_022", // Polymorph
-	"EX1_277", // Arcane Missiles
-	"CS2_025", // Arcane Explosion
-	"CS2_023", // Arcane Intellect
-	"CS2_029", // Fireball
-	"CS2_122", // Raid Leader
-	"CS2_172", // Bloodfen Raptor
-	"EX1_015", // Novice Engineer
-	"EX1_593", // Nightblade
-	"CS2_168", // Murloc Raider
-	"CS2_124", // Wolfrider
-	"CS2_120", // River Crocolisk
-	"CS2_200", // Boulderfist Ogre
 }
