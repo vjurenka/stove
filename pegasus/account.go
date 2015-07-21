@@ -161,6 +161,14 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		res.NextQuestCancel = PegasusDate(time.Now().UTC())
 		res.EventTimingMod = proto.Float32(0.291667)
 		return EncodeUtilResponse(271, &res)
+	case "PVP_QUEUE":
+		res := hsproto.PegasusUtil_PlayQueue{}
+		queue := hsproto.PegasusShared_PlayQueueInfo{}
+		gametype := hsproto.PegasusShared_BnetGameType_BGT_NORMAL
+		queue.GameType = &gametype
+		res.Queue = &queue
+		return EncodeUtilResponse(286, &res)
+
 	case "PLAYER_RECORD":
 		res := hsproto.PegasusUtil_PlayerRecords{}
 		return EncodeUtilResponse(270, &res)
