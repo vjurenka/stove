@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/HearthSim/hs-proto/go"
 	"github.com/golang/protobuf/proto"
+	"io"
 	"log"
 	"net"
 	"time"
@@ -109,6 +110,11 @@ func (s *Server) handleClient(c net.Conn) {
 	for {
 		_, err := sess.conn.Read(buf[:2])
 		if err != nil {
+			if err == io.EOF {
+				fmt.Print("Client disconnected\n")
+				c.Close()
+				break
+			}
 			log.Panicf("error: Server.handleClient: length read: %v", err)
 		}
 		headerLen := int(buf[0])<<8 | int(buf[1])
