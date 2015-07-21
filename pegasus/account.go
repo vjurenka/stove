@@ -76,6 +76,20 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		res.LevelEnd = proto.Int32(3)
 		res.CanLose = proto.Bool(false)
 		return EncodeUtilResponse(232, &res)
+	case "MEDAL_HISTORY":
+		res := hsproto.PegasusUtil_MedalHistory{}
+		for i := int32(1); i <= 3; i++ {
+			info := &hsproto.PegasusUtil_MedalHistoryInfo{}
+			info.When = PegasusDate(time.Date(2015, 8, 1, 7, 0, 0, 0, time.UTC))
+			info.Season = proto.Int32(i)
+			info.Stars = proto.Int32(0)
+			info.StarLevel = proto.Int32(0)
+			info.LevelStart = proto.Int32(0)
+			info.LevelEnd = proto.Int32(0)
+			info.LegendRank = proto.Int32(1)
+			res.Medals = append(res.Medals, info)
+		}
+		return EncodeUtilResponse(234, &res)
 	case "NOTICES":
 		res := hsproto.PegasusUtil_ProfileNotices{}
 		return EncodeUtilResponse(212, &res)
