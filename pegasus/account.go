@@ -190,6 +190,14 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		return EncodeUtilResponse(236, &res)
 	case "FAVORITE_HEROES":
 		res := hsproto.PegasusUtil_FavoriteHeroesResponse{}
+		for i := 2; i <= 10; i++ {
+			fav := &hsproto.PegasusShared_FavoriteHero{}
+			fav.ClassId = proto.Int32(int32(i))
+			carddef := &hsproto.PegasusShared_CardDef{}
+			carddef.Asset = proto.Int32(int32(heroIdToAssetId[i]))
+			fav.Hero = carddef
+			res.FavoriteHeroes = append(res.FavoriteHeroes, fav)
+		}
 		return EncodeUtilResponse(318, &res)
 	case "ACCOUNT_LICENSES":
 		res := hsproto.PegasusUtil_AccountLicensesInfoResponse{}
