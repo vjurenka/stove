@@ -112,6 +112,17 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		return EncodeUtilResponse(202, &res)
 	case "COLLECTION":
 		res := hsproto.PegasusUtil_Collection{}
+		cards := []int32{179, 1754}
+		for _, e := range cards {
+			stack1 := &hsproto.PegasusShared_CardStack{}
+			stack1.LatestInsertDate = PegasusDate(time.Now().UTC())
+			stack1.NumSeen = proto.Int32(1)
+			stack1.Count = proto.Int32(1)
+			carddef := &hsproto.PegasusShared_CardDef{}
+			carddef.Asset = proto.Int32(int32(e)) // wisp is 179?
+			stack1.CardDef = carddef
+			res.Stacks = append(res.Stacks, stack1)
+		}
 		return EncodeUtilResponse(207, &res)
 	case "DECK_LIMIT":
 		res := hsproto.PegasusUtil_ProfileDeckLimit{}
