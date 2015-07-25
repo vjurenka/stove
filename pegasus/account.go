@@ -18,6 +18,7 @@ func (v *Account) Init(sess *Session) {
 	sess.RegisterUtilHandler(0, 253, OnGetAchieves)
 	sess.RegisterUtilHandler(0, 267, OnCheckAccountLicenses)
 	sess.RegisterUtilHandler(1, 276, OnCheckGameLicenses)
+	sess.RegisterUtilHandler(0, 291, OnSetCardBack)
 	sess.RegisterUtilHandler(0, 305, OnGetAdventureProgress)
 }
 
@@ -279,6 +280,20 @@ func OnAckCardSeen(s *Session, body []byte) ([]byte, error) {
 	}
 	log.Printf("FIXME: AckCardSeen = %s", req.String())
 	return nil, nil
+}
+
+func OnSetCardBack(s *Session, body []byte) ([]byte, error) {
+	req := hsproto.PegasusUtil_SetCardBack{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("FIXME: SetCardBack stub = %s", req.String())
+	res := hsproto.PegasusUtil_SetCardBackResponse{}
+	cardback := req.GetCardBack()
+	res.CardBack = &cardback
+	res.Success = proto.Bool(false)
+	return EncodeUtilResponse(292, &res)
 }
 
 func PegasusDate(t time.Time) *hsproto.PegasusShared_Date {
