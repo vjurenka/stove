@@ -20,6 +20,7 @@ type Account struct {
 func (v *Account) Init(sess *Session) {
 	sess.RegisterUtilHandler(0, 201, OnGetAccountInfo)
 	sess.RegisterUtilHandler(0, 205, OnUpdateLogin)
+	sess.RegisterUtilHandler(0, 223, OnAckCardSeen)
 	sess.RegisterUtilHandler(0, 239, OnSetOptions)
 	sess.RegisterUtilHandler(0, 240, OnGetOptions)
 	sess.RegisterUtilHandler(0, 253, OnGetAchieves)
@@ -27,6 +28,16 @@ func (v *Account) Init(sess *Session) {
 	sess.RegisterUtilHandler(1, 276, OnCheckGameLicenses)
 	sess.RegisterUtilHandler(0, 284, OnValidateAchieve)
 	sess.RegisterUtilHandler(0, 305, OnGetAdventureProgress)
+}
+
+func OnAckCardSeen(s *Session, body []byte) ([]byte, error) {
+	req := hsproto.PegasusUtil_UpdateLogin{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("FIXME: AckCardSeen = %s", req.String())
+	return nil, nil
 }
 
 func OnCheckAccountLicenses(s *Session, body []byte) ([]byte, error) {
