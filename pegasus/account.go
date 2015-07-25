@@ -12,6 +12,7 @@ type Account struct{}
 func (v *Account) Init(sess *Session) {
 	sess.RegisterUtilHandler(0, 201, OnGetAccountInfo)
 	sess.RegisterUtilHandler(0, 205, OnUpdateLogin)
+	sess.RegisterUtilHandler(0, 223, OnAckCardSeen)
 	sess.RegisterUtilHandler(0, 239, OnSetOptions)
 	sess.RegisterUtilHandler(0, 240, OnGetOptions)
 	sess.RegisterUtilHandler(0, 253, OnGetAchieves)
@@ -268,6 +269,16 @@ func OnGetAchieves(s *Session, body []byte) ([]byte, error) {
 		res.List = append(res.List, info)
 	}
 	return EncodeUtilResponse(252, &res)
+}
+
+func OnAckCardSeen(s *Session, body []byte) ([]byte, error) {
+	req := hsproto.PegasusUtil_UpdateLogin{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("FIXME: AckCardSeen = %s", req.String())
+	return nil, nil
 }
 
 func PegasusDate(t time.Time) *hsproto.PegasusShared_Date {
