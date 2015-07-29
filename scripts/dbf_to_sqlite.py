@@ -77,40 +77,38 @@ def main():
 	]
 
 	for path in files:
-		tablename = os.path.splitext(path)[0]
+		tablename = os.path.splitext(path)[0].lower()
 		with open(os.path.join(datadir, "DBF", path), "r", encoding="utf8") as f:
 			xml = ElementTree.parse(f)
 
 			cols = [(e.attrib["name"], e.attrib["type"]) for e in xml.findall("Column")]
 
 			_columns = generate_columns(tablename, cols)
-			create_tbl = "CREATE TABLE IF NOT EXISTS %s (%s)" % (tablename, _columns)
+			create_tbl = "CREATE TABLE IF NOT EXISTS dbf_%s (%s)" % (tablename, _columns)
 			connection.execute(create_tbl)
 
 			values = []
 			for record in xml.findall("Record"):
 				fields = [get_field(tablename, record, column, type) for column, type in cols]
-				if tablename == "card":
-					fields.append(getattr(cards, fields[1]).name)
 
 				values.append(fields)
 
 			values_ph = ", ".join("?" for c in cols)
-			insert_into = "INSERT INTO %s VALUES (%s)" % (tablename, values_ph)
+			insert_into = "INSERT INTO dbf_%s VALUES (%s)" % (tablename, values_ph)
 
 			print(insert_into)
 
 			connection.executemany(insert_into, values)
 
 	# Add card names
-	connection.execute("ALTER TABLE card ADD COLUMN name_enus text")
+	connection.execute("ALTER TABLE dbf_card ADD COLUMN name_enus text")
 	cur = connection.cursor()
-	cur.execute("SELECT id, note_mini_guid FROM card")
+	cur.execute("SELECT id, note_mini_guid FROM dbf_card")
 	rows = cur.fetchall()
 
 	for pk, id in rows:
 		name = getattr(cards, id).name
-		connection.execute("UPDATE card SET name_enus = ? WHERE id = ?", (name, pk))
+		connection.execute("UPDATE dbf_card SET name_enus = ? WHERE id = ?", (name, pk))
 
 	connection.commit()
 	connection.close()
