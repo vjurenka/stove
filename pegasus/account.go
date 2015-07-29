@@ -7,7 +7,15 @@ import (
 	"time"
 )
 
-type Account struct{}
+type Account struct {
+	ID        int
+	BnetID    int
+	UpdatedAt time.Time
+	Flags     int64
+
+	Progress []SeasonProgress
+	Licenses []License
+}
 
 func (v *Account) Init(sess *Session) {
 	sess.RegisterUtilHandler(0, 201, OnGetAccountInfo)
