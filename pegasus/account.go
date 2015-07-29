@@ -21,6 +21,7 @@ func (v *Account) Init(sess *Session) {
 	sess.RegisterUtilHandler(0, 201, OnGetAccountInfo)
 	sess.RegisterUtilHandler(0, 205, OnUpdateLogin)
 	sess.RegisterUtilHandler(0, 223, OnAckCardSeen)
+	sess.RegisterUtilHandler(0, 225, OnOpenBooster)
 	sess.RegisterUtilHandler(0, 239, OnSetOptions)
 	sess.RegisterUtilHandler(0, 240, OnGetOptions)
 	sess.RegisterUtilHandler(0, 253, OnGetAchieves)
@@ -315,6 +316,35 @@ func OnValidateAchieve(s *Session, body []byte) ([]byte, error) {
 	res := hsproto.PegasusUtil_ValidateAchieveResponse{}
 	res.Achieve = proto.Int32(req.GetAchieve())
 	return EncodeUtilResponse(285, &res)
+}
+
+func MakeCardDef(id, premium int) *hsproto.PegasusShared_CardDef {
+	res := &hsproto.PegasusShared_CardDef{}
+	res.Asset = proto.Int32(int32(id))
+	res.Premium = proto.Int32(int32(premium))
+	return res
+}
+
+func OnOpenBooster(s *Session, body []byte) ([]byte, error) {
+	req := hsproto.PegasusUtil_OpenBooster{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return nil, err
+	}
+
+	res := hsproto.PegasusUtil_BoosterContent{}
+	booster := Booster{}
+	db.Where("booster_type = ? and opened = ?", req.GetBoosterType(), false).Preload("Cards").First(&booster)
+	log.Println(booster)
+	for _, card := range booster.Cards {
+		boosterCard := &hsproto.PegasusUtil_BoosterCard{
+			CardDef:    MakeCardDef(card.CardID, card.Premium),
+			InsertDate: PegasusDate(time.Now().UTC()),
+		}
+		res.List = append(res.List, boosterCard)
+	}
+
+	return EncodeUtilResponse(226, &res)
 }
 
 func OnSetCardBack(s *Session, body []byte) ([]byte, error) {
