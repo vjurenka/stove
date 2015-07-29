@@ -11,12 +11,9 @@ fi
 
 mkdir -p build
 cd build
-if [ ! -e fireplace ]; then
-	git clone --depth 1 --recursive https://github.com/jleclanche/fireplace.git
+if [ ! -e hs-data ]; then
+	git clone --depth=1 https://github.com/HearthSim/hs-data.git
 fi
-cd fireplace
-source ./bootstrap.sh
-cp ../../scripts/dbf_to_sqlite.py .
-./dbf_to_sqlite.py ./data ../../pegasus.db
-cd ../../
-rm -r build
+../scripts/dbf_to_sqlite.py ./hs-data ../pegasus.db
+cd ..
+rm -rf build

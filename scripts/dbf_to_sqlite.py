@@ -3,7 +3,6 @@ import os
 import sqlite3
 import sys
 from xml.etree import ElementTree
-from fireplace import cards
 
 
 def generate_columns(table, columns):
@@ -78,7 +77,7 @@ def main():
 
 	for path in files:
 		tablename = os.path.splitext(path)[0].lower()
-		with open(os.path.join(datadir, "DBF", path), "r", encoding="utf8") as f:
+		with open(os.path.join(datadir, "DBF", path), "r", encoding="utf-8") as f:
 			xml = ElementTree.parse(f)
 
 			cols = [(e.attrib["name"], e.attrib["type"]) for e in xml.findall("Column")]
@@ -106,9 +105,17 @@ def main():
 	cur.execute("SELECT id, note_mini_guid FROM dbf_card")
 	rows = cur.fetchall()
 
-	for pk, id in rows:
-		name = getattr(cards, id).name
-		connection.execute("UPDATE dbf_card SET name_enus = ? WHERE id = ?", (name, pk))
+	with open(os.path.join(datadir, "TextAsset", "enUS.txt"), "r", encoding="utf-8") as f:
+		xml = ElementTree.parse(f)
+
+		for pk, id in rows:
+			xpath = 'Entity[@CardID="%s"]' % (id)
+			e = xml.find(xpath)
+			if e is None:
+				print("WARNING: Could not find card %r in hs-data." % (id))
+				continue
+			name = e.find('Tag[@enumID="185"]').text
+			connection.execute("UPDATE dbf_card SET name_enus = ? WHERE id = ?", (name, pk))
 
 	connection.commit()
 	connection.close()
