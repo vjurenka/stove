@@ -25,6 +25,7 @@ func (v *Account) Init(sess *Session) {
 	sess.RegisterUtilHandler(0, 253, OnGetAchieves)
 	sess.RegisterUtilHandler(0, 267, OnCheckAccountLicenses)
 	sess.RegisterUtilHandler(1, 276, OnCheckGameLicenses)
+	sess.RegisterUtilHandler(0, 284, OnValidateAchieve)
 	sess.RegisterUtilHandler(0, 305, OnGetAdventureProgress)
 }
 
@@ -265,6 +266,18 @@ func OnGetAchieves(s *Session, body []byte) ([]byte, error) {
 		res.List = append(res.List, info)
 	}
 	return EncodeUtilResponse(252, &res)
+}
+
+func OnValidateAchieve(s *Session, body []byte) ([]byte, error) {
+	req := hsproto.PegasusUtil_ValidateAchieve{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("req = %s", req.String())
+	res := hsproto.PegasusUtil_ValidateAchieveResponse{}
+	res.Achieve = proto.Int32(req.GetAchieve())
+	return EncodeUtilResponse(285, &res)
 }
 
 func PegasusDate(t time.Time) *hsproto.PegasusShared_Date {
