@@ -17,10 +17,27 @@ func openDB() gorm.DB {
 	db.AutoMigrate(
 		&Account{},
 		&AccountLicense{},
+		&Booster{},
+		&BoosterCard{},
 		&License{},
 		&SeasonProgress{})
 
 	return db
+}
+
+type Booster struct {
+	ID          int
+	AccountID   int
+	BoosterType int
+	Opened      bool
+	Cards       []BoosterCard
+}
+
+type BoosterCard struct {
+	ID        int
+	BoosterID int
+	CardID    int
+	Premium   int
 }
 
 type DbfCard struct {
