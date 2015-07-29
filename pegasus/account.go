@@ -121,6 +121,19 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		return EncodeUtilResponse(202, &res)
 	case "COLLECTION":
 		res := hsproto.PegasusUtil_Collection{}
+		dbfCards := []DbfCard{}
+		db.Where("is_collectible").Find(&dbfCards)
+		for _, card := range dbfCards {
+			stack1 := &hsproto.PegasusShared_CardStack{}
+			stack1.LatestInsertDate = PegasusDate(time.Now().UTC())
+			stack1.NumSeen = proto.Int32(2)
+			stack1.Count = proto.Int32(2)
+			carddef := &hsproto.PegasusShared_CardDef{}
+			carddef.Asset = proto.Int32(int32(card.ID))
+			carddef.Premium = proto.Int32(0)
+			stack1.CardDef = carddef
+			res.Stacks = append(res.Stacks, stack1)
+		}
 		return EncodeUtilResponse(207, &res)
 	case "DECK_LIMIT":
 		res := hsproto.PegasusUtil_ProfileDeckLimit{}
