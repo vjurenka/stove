@@ -82,6 +82,18 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		return EncodeUtilResponse(233, &res)
 	case "BOOSTERS":
 		res := hsproto.PegasusUtil_BoosterList{}
+		classicPacks := s.GetBoosterInfo(1)
+		gvgPacks := s.GetBoosterInfo(9)
+		tgtPacks := s.GetBoosterInfo(10)
+		if *classicPacks.Count > 0 {
+			res.List = append(res.List, classicPacks)
+		}
+		if *gvgPacks.Count > 0 {
+			res.List = append(res.List, gvgPacks)
+		}
+		if *tgtPacks.Count > 0 {
+			res.List = append(res.List, tgtPacks)
+		}
 		return EncodeUtilResponse(224, &res)
 	case "FEATURES":
 		res := hsproto.PegasusUtil_GuardianVars{}
@@ -317,6 +329,17 @@ func OnSetCardBack(s *Session, body []byte) ([]byte, error) {
 	res.CardBack = &cardback
 	res.Success = proto.Bool(false)
 	return EncodeUtilResponse(292, &res)
+}
+
+func (s *Session) GetBoosterInfo(kind int32) *hsproto.PegasusShared_BoosterInfo {
+	var count int32
+	db.Model(Booster{}).
+		Where("booster_type = ? and opened = ?", kind, false).
+		Count(&count)
+	res := &hsproto.PegasusShared_BoosterInfo{}
+	res.Count = proto.Int32(count)
+	res.Type = proto.Int32(kind)
+	return res
 }
 
 func PegasusDate(t time.Time) *hsproto.PegasusShared_Date {
