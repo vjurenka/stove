@@ -132,34 +132,18 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		return EncodeUtilResponse(212, &res)
 	case "DECK_LIST":
 		res := hsproto.PegasusUtil_DeckList{}
-		for i := 2; i <= 10; i++ {
-			info := &hsproto.PegasusShared_DeckInfo{}
-			info.Id = proto.Int64(int64(1000 + i))
-			info.Name = proto.String("precon")
-			info.CardBack = proto.Int32(0)
-			info.Hero = proto.Int32(int32(heroIdToAssetId[i]))
-			precon := hsproto.PegasusShared_DeckType_PRECON_DECK
-			info.DeckType = &precon
-			info.Validity = proto.Uint64(31)
-			info.HeroPremium = proto.Int32(0)
-			info.CardBackOverride = proto.Bool(false)
-			info.HeroOverride = proto.Bool(false)
+		basicDecks := []Deck{}
+		deckType := hsproto.PegasusShared_DeckType_PRECON_DECK
+		db.Where("deck_type = ?", deckType).Find(&basicDecks)
+		for _, deck := range basicDecks {
+			info := MakeDeckInfo(&deck)
 			res.Decks = append(res.Decks, info)
 		}
 		decks := []Deck{}
-		deckType := hsproto.PegasusShared_DeckType_NORMAL_DECK
+		deckType = hsproto.PegasusShared_DeckType_NORMAL_DECK
 		db.Where("deck_type = ?", deckType).Find(&decks)
 		for _, deck := range decks {
-			info := &hsproto.PegasusShared_DeckInfo{}
-			info.Id = proto.Int64(deck.ID)
-			info.Name = proto.String(deck.Name)
-			info.CardBack = proto.Int32(0)
-			info.Hero = proto.Int32(int32(deck.HeroID))
-			info.DeckType = &deckType
-			info.Validity = proto.Uint64(31)
-			info.HeroPremium = proto.Int32(int32(deck.HeroPremium))
-			info.CardBackOverride = proto.Bool(false)
-			info.HeroOverride = proto.Bool(false)
+			info := MakeDeckInfo(&deck)
 			res.Decks = append(res.Decks, info)
 		}
 		return EncodeUtilResponse(202, &res)
@@ -335,6 +319,22 @@ func OnValidateAchieve(s *Session, body []byte) ([]byte, error) {
 	res := hsproto.PegasusUtil_ValidateAchieveResponse{}
 	res.Achieve = proto.Int32(req.GetAchieve())
 	return EncodeUtilResponse(285, &res)
+}
+
+func MakeDeckInfo(deck *Deck) *hsproto.PegasusShared_DeckInfo {
+	info := &hsproto.PegasusShared_DeckInfo{}
+	info.Id = proto.Int64(deck.ID)
+	info.Name = proto.String(deck.Name)
+	info.CardBack = proto.Int32(0)
+	info.Hero = proto.Int32(int32(deck.HeroID))
+	deckType := hsproto.PegasusShared_DeckType(deck.DeckType)
+	info.DeckType = &deckType
+	info.Validity = proto.Uint64(31)
+	info.HeroPremium = proto.Int32(int32(deck.HeroPremium))
+	info.CardBackOverride = proto.Bool(false)
+	info.HeroOverride = proto.Bool(false)
+
+	return info
 }
 
 func MakeCardDef(id, premium int) *hsproto.PegasusShared_CardDef {
