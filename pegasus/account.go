@@ -22,6 +22,7 @@ func (v *Account) Init(sess *Session) {
 	sess.RegisterUtilHandler(0, 205, OnUpdateLogin)
 	sess.RegisterUtilHandler(0, 209, OnCreateDeck)
 	sess.RegisterUtilHandler(0, 210, OnDeleteDeck)
+	sess.RegisterUtilHandler(0, 214, OnGetDeck)
 	sess.RegisterUtilHandler(0, 222, OnDeckSetData)
 	sess.RegisterUtilHandler(0, 223, OnAckCardSeen)
 	sess.RegisterUtilHandler(0, 225, OnOpenBooster)
@@ -364,6 +365,36 @@ func OnOpenBooster(s *Session, body []byte) ([]byte, error) {
 	}
 
 	return EncodeUtilResponse(226, &res)
+}
+
+func OnGetDeck(s *Session, body []byte) ([]byte, error) {
+	req := hsproto.PegasusUtil_GetDeck{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return nil, err
+	}
+
+	id := req.GetDeck()
+	var deck Deck
+	db.First(&deck, id)
+	deckCards := []DeckCard{}
+	db.Where("deck_id = ?", id).Find(&deckCards)
+
+	res := hsproto.PegasusUtil_DeckContents{
+		Deck: proto.Int64(id),
+	}
+
+	for i, card := range deckCards {
+		cardData := &hsproto.PegasusShared_DeckCardData{
+			Def:    MakeCardDef(card.CardID, card.Premium),
+			Handle: proto.Int32(int32(i)),
+			Qty:    proto.Int32(1), // FIXME
+			Prev:   proto.Int32(int32(i) - 1),
+		}
+		res.Cards = append(res.Cards, cardData)
+	}
+
+	return EncodeUtilResponse(215, &res)
 }
 
 func OnCreateDeck(s *Session, body []byte) ([]byte, error) {
