@@ -20,6 +20,7 @@ type Account struct {
 func (v *Account) Init(sess *Session) {
 	sess.RegisterUtilHandler(0, 201, OnGetAccountInfo)
 	sess.RegisterUtilHandler(0, 205, OnUpdateLogin)
+	sess.RegisterUtilHandler(0, 209, OnCreateDeck)
 	sess.RegisterUtilHandler(0, 223, OnAckCardSeen)
 	sess.RegisterUtilHandler(0, 225, OnOpenBooster)
 	sess.RegisterUtilHandler(0, 239, OnSetOptions)
@@ -345,6 +346,30 @@ func OnOpenBooster(s *Session, body []byte) ([]byte, error) {
 	}
 
 	return EncodeUtilResponse(226, &res)
+}
+
+func OnCreateDeck(s *Session, body []byte) ([]byte, error) {
+	req := hsproto.PegasusUtil_CreateDeck{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("FIXME: CreateDeck stub = %s", req.String())
+	res := hsproto.PegasusUtil_DeckCreated{}
+
+	info := hsproto.PegasusShared_DeckInfo{}
+	info.Id = proto.Int64(1)
+	info.Name = req.Name
+	info.DeckType = req.DeckType
+	info.CardBack = proto.Int32(1)
+	info.CardBackOverride = proto.Bool(false)
+	info.Hero = req.Hero
+	info.HeroPremium = req.HeroPremium
+	info.HeroOverride = proto.Bool(false)
+	info.Validity = proto.Uint64(1)
+	res.Info = &info
+	return EncodeUtilResponse(217, &res)
 }
 
 func OnSetCardBack(s *Session, body []byte) ([]byte, error) {
