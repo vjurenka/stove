@@ -356,11 +356,21 @@ func OnCreateDeck(s *Session, body []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	log.Printf("FIXME: CreateDeck stub = %s", req.String())
+	deck := Deck{
+		AccountID:    1,
+		DeckType:     int(req.GetDeckType()),
+		Name:         req.GetName(),
+		HeroID:       int(req.GetHero()),
+		HeroPremium:  int(req.GetHeroPremium()),
+		CardBackID:   0,
+		LastModified: time.Now().UTC(),
+	}
+	db.Create(&deck)
+
 	res := hsproto.PegasusUtil_DeckCreated{}
 
 	info := hsproto.PegasusShared_DeckInfo{}
-	info.Id = proto.Int64(1)
+	info.Id = proto.Int64(deck.ID)
 	info.Name = req.Name
 	info.DeckType = req.DeckType
 	info.CardBack = proto.Int32(1)
