@@ -145,6 +145,22 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 			info.HeroOverride = proto.Bool(false)
 			res.Decks = append(res.Decks, info)
 		}
+		decks := []Deck{}
+		deckType := hsproto.PegasusShared_DeckType_NORMAL_DECK
+		db.Where("deck_type = ?", deckType).Find(&decks)
+		for _, deck := range decks {
+			info := &hsproto.PegasusShared_DeckInfo{}
+			info.Id = proto.Int64(deck.ID)
+			info.Name = proto.String(deck.Name)
+			info.CardBack = proto.Int32(0)
+			info.Hero = proto.Int32(int32(deck.HeroID))
+			info.DeckType = &deckType
+			info.Validity = proto.Uint64(31)
+			info.HeroPremium = proto.Int32(int32(deck.HeroPremium))
+			info.CardBackOverride = proto.Bool(false)
+			info.HeroOverride = proto.Bool(false)
+			res.Decks = append(res.Decks, info)
+		}
 		return EncodeUtilResponse(202, &res)
 	case "COLLECTION":
 		res := hsproto.PegasusUtil_Collection{}
