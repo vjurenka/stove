@@ -8,7 +8,7 @@ import (
 var db = openDB()
 
 func openDB() gorm.DB {
-	db, err := gorm.Open("sqlite3", "pegasus.db")
+	db, err := gorm.Open("sqlite3", "db/pegasus.db")
 	if err != nil {
 		panic(err)
 	}

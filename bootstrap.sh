@@ -1,19 +1,25 @@
 #!/bin/bash
 set -e
 
-cd "$(dirname $0)"
+BASEDIR="$(realpath $(dirname $0))"
+DATADIR="$BASEDIR/hs-data"
+DBFILE="$BASEDIR/db/pegasus.db"
+HSDATA="https://github.com/HearthSim/hs-data.git"
 
-if [ -e pegasus.db ]; then
-	echo "pegasus.db already exists.  If you want to rerun the bootstrapper," \
-	"then remove pegasus.db."
+mkdir -p "$BASEDIR/db"
+
+if [ -e "$DBFILE" ]; then
+	echo "$DBFILE already exists.  If you want to rerun the bootstrapper, remove it."
 	exit 1
 fi
 
-mkdir -p build
-cd build
-if [ ! -e hs-data ]; then
-	git clone --depth=1 https://github.com/HearthSim/hs-data.git
+echo "Fetching data files from $HSDATA"
+if [ ! -e "$DATADIR" ]; then
+	git clone --depth=1 "$HSDATA" "$DATADIR"
+else
+	git -C "$DATADIR" pull >/dev/null
 fi
-../scripts/dbf_to_sqlite.py ./hs-data ../pegasus.db
-cd ..
-rm -rf build
+
+echo "Creating database in $DBFILE"
+
+"$BASEDIR/scripts/dbf_to_sqlite.py" "$DATADIR" "$DBFILE"
