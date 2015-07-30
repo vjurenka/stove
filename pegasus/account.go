@@ -21,6 +21,7 @@ func (v *Account) Init(sess *Session) {
 	sess.RegisterUtilHandler(0, 201, OnGetAccountInfo)
 	sess.RegisterUtilHandler(0, 205, OnUpdateLogin)
 	sess.RegisterUtilHandler(0, 209, OnCreateDeck)
+	sess.RegisterUtilHandler(0, 210, OnDeleteDeck)
 	sess.RegisterUtilHandler(0, 222, OnDeckSetData)
 	sess.RegisterUtilHandler(0, 223, OnAckCardSeen)
 	sess.RegisterUtilHandler(0, 225, OnOpenBooster)
@@ -422,6 +423,23 @@ func OnSetCardBack(s *Session, body []byte) ([]byte, error) {
 	res.CardBack = &cardback
 	res.Success = proto.Bool(false)
 	return EncodeUtilResponse(292, &res)
+}
+
+func OnDeleteDeck(s *Session, body []byte) ([]byte, error) {
+	req := hsproto.PegasusUtil_DeleteDeck{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return nil, err
+	}
+	id := req.GetDeck()
+	deck := Deck{}
+	db.First(&deck, id)
+	db.Delete(&deck)
+
+	res := hsproto.PegasusUtil_DeckDeleted{
+		Deck: proto.Int64(id),
+	}
+	return EncodeUtilResponse(218, &res)
 }
 
 func (s *Session) GetBoosterInfo(kind int32) *hsproto.PegasusShared_BoosterInfo {
