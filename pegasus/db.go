@@ -3,6 +3,7 @@ package pegasus
 import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
+	"time"
 )
 
 var db = openDB()
@@ -19,6 +20,8 @@ func openDB() gorm.DB {
 		&AccountLicense{},
 		&Booster{},
 		&BoosterCard{},
+		&Deck{},
+		&DeckCard{},
 		&License{},
 		&SeasonProgress{})
 
@@ -38,6 +41,25 @@ type BoosterCard struct {
 	BoosterID int
 	CardID    int
 	Premium   int
+}
+
+type Deck struct {
+	ID           int64
+	AccountID    int
+	DeckType     int
+	Name         string
+	HeroID       int
+	HeroPremium  int
+	CardBackID   int
+	LastModified time.Time
+	Cards        []DeckCard
+}
+
+type DeckCard struct {
+	ID      int64
+	DeckID  int
+	CardID  int
+	Premium int
 }
 
 type DbfCard struct {
