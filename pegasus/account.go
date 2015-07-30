@@ -21,6 +21,7 @@ func (v *Account) Init(sess *Session) {
 	sess.RegisterUtilHandler(0, 201, OnGetAccountInfo)
 	sess.RegisterUtilHandler(0, 205, OnUpdateLogin)
 	sess.RegisterUtilHandler(0, 209, OnCreateDeck)
+	sess.RegisterUtilHandler(0, 222, OnDeckSetData)
 	sess.RegisterUtilHandler(0, 223, OnAckCardSeen)
 	sess.RegisterUtilHandler(0, 225, OnOpenBooster)
 	sess.RegisterUtilHandler(0, 239, OnSetOptions)
@@ -370,6 +371,17 @@ func OnCreateDeck(s *Session, body []byte) ([]byte, error) {
 	info.Validity = proto.Uint64(1)
 	res.Info = &info
 	return EncodeUtilResponse(217, &res)
+}
+
+func OnDeckSetData(s *Session, body []byte) ([]byte, error) {
+	req := hsproto.PegasusUtil_DeckSetData{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("FIXME: DeckSetData stub = %s", req.String())
+
+	return nil, nil
 }
 
 func OnSetCardBack(s *Session, body []byte) ([]byte, error) {
