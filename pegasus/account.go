@@ -22,6 +22,7 @@ func (v *Account) Init(sess *Session) {
 	sess.RegisterUtilHandler(0, 205, OnUpdateLogin)
 	sess.RegisterUtilHandler(0, 209, OnCreateDeck)
 	sess.RegisterUtilHandler(0, 210, OnDeleteDeck)
+	sess.RegisterUtilHandler(0, 211, OnRenameDeck)
 	sess.RegisterUtilHandler(0, 214, OnGetDeck)
 	sess.RegisterUtilHandler(0, 222, OnDeckSetData)
 	sess.RegisterUtilHandler(0, 223, OnAckCardSeen)
@@ -487,6 +488,24 @@ func OnSetCardBack(s *Session, body []byte) ([]byte, error) {
 	res.CardBack = &cardback
 	res.Success = proto.Bool(false)
 	return EncodeUtilResponse(292, &res)
+}
+
+func OnRenameDeck(s *Session, body []byte) ([]byte, error) {
+	req := hsproto.PegasusUtil_RenameDeck{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return nil, err
+	}
+	id := req.GetDeck()
+	deck := Deck{}
+	name := req.GetName()
+	db.First(&deck, id).Update("name", name)
+
+	res := hsproto.PegasusUtil_DeckRenamed{
+		Deck: proto.Int64(id),
+		Name: proto.String(name),
+	}
+	return EncodeUtilResponse(219, &res)
 }
 
 func OnDeleteDeck(s *Session, body []byte) ([]byte, error) {
