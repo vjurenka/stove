@@ -406,7 +406,40 @@ func OnDeckSetData(s *Session, body []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("FIXME: DeckSetData stub = %s", req.String())
+
+	id := req.GetDeck()
+	deck := Deck{}
+	db.First(&deck, id)
+
+	for _, card := range req.Cards {
+		cardDef := card.GetDef()
+		qty := int(card.GetQty())
+		if qty == 0 {
+			qty = 1
+		}
+		for i := 1; i <= qty; i++ {
+			c := DeckCard{
+				DeckID:  deck.ID,
+				CardID:  int(cardDef.GetAsset()),
+				Premium: int(cardDef.GetPremium()),
+			}
+			db.Create(&c)
+		}
+	}
+
+	hero := req.GetHero()
+	if hero != nil {
+		deck.HeroID = int(hero.GetAsset())
+		deck.HeroPremium = int(hero.GetPremium())
+	}
+
+	cardBack := req.GetCardBack()
+	if cardBack != 0 {
+		deck.CardBackID = int(cardBack)
+	}
+
+	deck.LastModified = time.Now().UTC()
+	db.Save(&deck)
 
 	return nil, nil
 }
