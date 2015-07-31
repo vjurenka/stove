@@ -29,23 +29,23 @@ func openDB() gorm.DB {
 }
 
 type Booster struct {
-	ID          int
-	AccountID   int
+	ID          int64
+	AccountID   int64
 	BoosterType int
 	Opened      bool
 	Cards       []BoosterCard
 }
 
 type BoosterCard struct {
-	ID        int
-	BoosterID int
+	ID        int64
+	BoosterID int64
 	CardID    int
 	Premium   int
 }
 
 type Deck struct {
 	ID           int64
-	AccountID    int
+	AccountID    int64
 	DeckType     int
 	Name         string
 	HeroID       int
@@ -57,7 +57,7 @@ type Deck struct {
 
 type DeckCard struct {
 	ID      int64
-	DeckID  int
+	DeckID  int64
 	CardID  int
 	Premium int
 }
@@ -71,7 +71,7 @@ type DbfCard struct {
 
 type SeasonProgress struct {
 	ID        int
-	AccountID int
+	AccountID int64
 
 	StarLevel            int
 	Stars                int
@@ -82,12 +82,12 @@ type SeasonProgress struct {
 }
 
 type AccountLicense struct {
-	ID        int
-	AccountID int
-	LicenseID int
+	ID        int64
+	AccountID int64
+	LicenseID int64
 }
 
 type License struct {
-	ID        int
+	ID        int64
 	ProductID int
 }
