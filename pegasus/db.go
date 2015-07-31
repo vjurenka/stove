@@ -15,16 +15,6 @@ func openDB() gorm.DB {
 	}
 
 	db.SingularTable(true)
-	db.AutoMigrate(
-		&Account{},
-		&AccountLicense{},
-		&Booster{},
-		&BoosterCard{},
-		&Deck{},
-		&DeckCard{},
-		&License{},
-		&SeasonProgress{})
-
 	return db
 }
 

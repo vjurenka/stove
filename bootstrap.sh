@@ -21,5 +21,9 @@ else
 fi
 
 echo "Creating database in $DBFILE"
-
 "$BASEDIR/scripts/dbf_to_sqlite.py" "$DATADIR" "$DBFILE"
+
+echo "Creating pegasus tables"
+go run "$BASEDIR/migrate.go"
+
+echo "Done."
