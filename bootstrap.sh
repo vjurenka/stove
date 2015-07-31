@@ -26,4 +26,7 @@ echo "Creating database in $DBFILE"
 echo "Creating pegasus tables"
 go run "$BASEDIR/migrate.go"
 
+echo "Prepopulating decks"
+"$BASEDIR/scripts/create_basic_decks.py" "$DBFILE"
+
 echo "Done."
