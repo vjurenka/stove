@@ -498,6 +498,7 @@ func OnDeleteDeck(s *Session, body []byte) ([]byte, error) {
 	id := req.GetDeck()
 	deck := Deck{}
 	db.First(&deck, id)
+	db.Where("deck_id = ?", id).Delete(DeckCard{})
 	db.Delete(&deck)
 
 	res := hsproto.PegasusUtil_DeckDeleted{
