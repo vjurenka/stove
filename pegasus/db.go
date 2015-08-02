@@ -52,6 +52,20 @@ type DeckCard struct {
 	Premium int
 }
 
+type DbfAchieve struct {
+	ID          int32
+	AchType     string
+	Triggered   string
+	AchQuota    int
+	Race        int
+	Reward      string
+	RewardData1 int
+	RewardData2 int
+	CardSet     int
+	Event       string
+	NameEnus    string
+}
+
 type DbfCard struct {
 	ID            int
 	NoteMiniGuid  string
