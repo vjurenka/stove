@@ -105,7 +105,7 @@ def main():
 	cur.execute("SELECT id, note_mini_guid FROM dbf_card")
 	rows = cur.fetchall()
 
-	with open(os.path.join(datadir, "TextAsset", "enUS.txt"), "r", encoding="utf-8") as f:
+	with open(os.path.join(datadir, "CardDefs.xml"), "r", encoding="utf-8") as f:
 		xml = ElementTree.parse(f)
 
 		for pk, id in rows:
@@ -114,12 +114,11 @@ def main():
 			if e is None:
 				print("WARNING: Could not find card %r in hs-data." % (id))
 				continue
-			name = e.find('Tag[@enumID="185"]').text
+			name = e.find('Tag[@enumID="185"]/enUS').text
 			connection.execute("UPDATE dbf_card SET name_enus = ? WHERE id = ?", (name, pk))
 
 	connection.commit()
 	connection.close()
-
 
 
 if __name__ == "__main__":
