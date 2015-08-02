@@ -226,8 +226,12 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		return EncodeUtilResponse(270, &res)
 	case "CARD_BACKS":
 		res := hsproto.PegasusUtil_CardBacks{}
-		res.DefaultCardBack = proto.Int32(13)
-		res.CardBacks = []int32{0, 13, 24}
+		dbfCardBacks := []DbfCardBack{}
+		res.DefaultCardBack = proto.Int32(0)
+		db.Find(&dbfCardBacks)
+		for _, cardBack := range dbfCardBacks {
+			res.CardBacks = append(res.CardBacks, cardBack.ID)
+		}
 		return EncodeUtilResponse(236, &res)
 	case "FAVORITE_HEROES":
 		res := hsproto.PegasusUtil_FavoriteHeroesResponse{}
@@ -467,7 +471,7 @@ func OnDeckSetData(s *Session, body []byte) ([]byte, error) {
 
 	cardBack := req.GetCardBack()
 	if cardBack != 0 {
-		deck.CardBackID = int(cardBack)
+		deck.CardBackID = cardBack
 	}
 
 	deck.LastModified = time.Now().UTC()

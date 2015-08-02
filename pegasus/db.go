@@ -40,7 +40,7 @@ type Deck struct {
 	Name         string
 	HeroID       int
 	HeroPremium  int
-	CardBackID   int
+	CardBackID   int32
 	LastModified time.Time
 	Cards        []DeckCard
 }
@@ -57,6 +57,13 @@ type DbfCard struct {
 	NoteMiniGuid  string
 	IsCollectible bool
 	NameEnus      string
+}
+
+type DbfCardBack struct {
+	ID       int32
+	Data1    int
+	source   string
+	NameEnus string
 }
 
 type SeasonProgress struct {
