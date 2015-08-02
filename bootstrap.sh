@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-BASEDIR="$(realpath $(dirname $0))"
+BASEDIR="$(readlink -f $(dirname $0))"
 DATADIR="$BASEDIR/hs-data"
 DBFILE="$BASEDIR/db/pegasus.db"
 HSDATA="https://github.com/HearthSim/hs-data.git"
