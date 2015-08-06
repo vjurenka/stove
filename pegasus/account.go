@@ -394,7 +394,7 @@ func OnGetDeck(s *Session, body []byte) ([]byte, error) {
 		cardData := &hsproto.PegasusShared_DeckCardData{
 			Def:    MakeCardDef(card.CardID, card.Premium),
 			Handle: proto.Int32(int32(i)),
-			Qty:    proto.Int32(1), // FIXME
+			Qty:    proto.Int32(int32(card.Num)),
 			Prev:   proto.Int32(int32(i) - 1),
 		}
 		res.Cards = append(res.Cards, cardData)
@@ -454,14 +454,13 @@ func OnDeckSetData(s *Session, body []byte) ([]byte, error) {
 		if qty == 0 {
 			qty = 1
 		}
-		for i := 1; i <= qty; i++ {
-			c := DeckCard{
-				DeckID:  deck.ID,
-				CardID:  int(cardDef.GetAsset()),
-				Premium: int(cardDef.GetPremium()),
-			}
-			db.Create(&c)
+		c := DeckCard{
+			DeckID:  deck.ID,
+			CardID:  int(cardDef.GetAsset()),
+			Premium: int(cardDef.GetPremium()),
+			Num:	 int(qty),			
 		}
+		db.Create(&c)
 	}
 
 	hero := req.GetHero()

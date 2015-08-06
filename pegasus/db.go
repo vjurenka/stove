@@ -50,6 +50,7 @@ type DeckCard struct {
 	DeckID  int64
 	CardID  int
 	Premium int
+	Num     int
 }
 
 type DbfAchieve struct {
