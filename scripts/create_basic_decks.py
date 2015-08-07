@@ -191,11 +191,6 @@ BASIC_DECKS = {
 	"Garrosh Hellscream": BASIC_PRECON_WARRIOR,
 }
 
-# Double all cards in all decks
-for deck in BASIC_DECKS.values():
-	deck += deck
-
-
 def get_card_id(cursor, name):
 	sql_select = "SELECT id FROM dbf_card WHERE name_enus = ? AND is_collectible = ?"
 	rows = cursor.execute(sql_select, (name, True))
@@ -241,8 +236,8 @@ def main():
 			id = None
 			card_id = get_card_id(cursor, card)
 			premium = False
-			cards.append((id, deck_id, card_id, premium))
-		connection.executemany("INSERT INTO deck_card VALUES (?, ?, ?, ?)", cards)
+			cards.append((id, deck_id, card_id, premium, 2))
+		connection.executemany("INSERT INTO deck_card VALUES (?, ?, ?, ?, ?)", cards)
 
 	connection.commit()
 	connection.close()
