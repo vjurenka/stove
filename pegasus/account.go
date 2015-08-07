@@ -3,6 +3,7 @@ package pegasus
 import (
 	"github.com/HearthSim/hs-proto/go"
 	"github.com/golang/protobuf/proto"
+	"fmt"
 	"log"
 	"time"
 )
@@ -386,6 +387,12 @@ func OnGetDeck(s *Session, body []byte) ([]byte, error) {
 	id := req.GetDeck()
 	var deck Deck
 	db.First(&deck, id)
+
+	// TODO: does this also need to allow brawl/arena decks? what about AI decks?
+	if deck.DeckType != int(hsproto.PegasusShared_DeckType_PRECON_DECK) && deck.AccountID != s.Account.ID {
+		return nil, fmt.Errorf("received OnGetDeck for non-precon deck not owned by account")
+	}
+
 	deckCards := []DeckCard{}
 	db.Where("deck_id = ?", id).Find(&deckCards)
 
@@ -451,6 +458,10 @@ func OnDeckSetData(s *Session, body []byte) ([]byte, error) {
 	deck := Deck{}
 	db.First(&deck, id)
 
+	if deck.AccountID != s.Account.ID {
+		return nil, fmt.Errorf("received DeckSetData for deck not owned by account")
+	}
+
 	for _, card := range req.Cards {
 		cardDef := card.GetDef()
 		qty := int(card.GetQty())
@@ -506,7 +517,14 @@ func OnRenameDeck(s *Session, body []byte) ([]byte, error) {
 	id := req.GetDeck()
 	deck := Deck{}
 	name := req.GetName()
-	db.First(&deck, id).Update("name", name)
+	db.First(&deck, id)
+
+	if deck.AccountID != s.Account.ID {
+		return nil, fmt.Errorf("received RenameDeck for deck not owned by account")
+	}
+
+	deck.Name = name
+	db.Save(&deck)
 
 	res := hsproto.PegasusUtil_DeckRenamed{
 		Deck: proto.Int64(id),
@@ -524,6 +542,11 @@ func OnDeleteDeck(s *Session, body []byte) ([]byte, error) {
 	id := req.GetDeck()
 	deck := Deck{}
 	db.First(&deck, id)
+
+	if deck.AccountID != s.Account.ID {
+		return nil, fmt.Errorf("received DeleteDeck for deck not owned by account")
+	}
+
 	db.Where("deck_id = ?", id).Delete(DeckCard{})
 	db.Delete(&deck)
 
