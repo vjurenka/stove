@@ -29,4 +29,7 @@ go run "$BASEDIR/migrate.go"
 echo "Prepopulating decks"
 "$BASEDIR/scripts/create_basic_decks.py" "$DBFILE"
 
+echo "Creating default user"
+"$BASEDIR/scripts/create_default_user.py" "$DBFILE"
+
 echo "Done."
