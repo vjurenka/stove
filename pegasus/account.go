@@ -8,7 +8,7 @@ import (
 )
 
 type Account struct {
-	ID        int
+	ID        int64
 	BnetID    int
 	UpdatedAt time.Time
 	Flags     int64
@@ -18,6 +18,9 @@ type Account struct {
 }
 
 func (v *Account) Init(sess *Session) {
+	// TODO: fetch the account using the bnet session
+	db.Find(&sess.Account)
+
 	sess.RegisterUtilHandler(0, 201, OnGetAccountInfo)
 	sess.RegisterUtilHandler(0, 205, OnUpdateLogin)
 	sess.RegisterUtilHandler(0, 209, OnCreateDeck)
@@ -143,7 +146,7 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		}
 		decks := []Deck{}
 		deckType = hsproto.PegasusShared_DeckType_NORMAL_DECK
-		db.Where("deck_type = ?", deckType).Find(&decks)
+		db.Where("deck_type = ? and account_id = ?", deckType, s.Account.ID).Find(&decks)
 		for _, deck := range decks {
 			info := MakeDeckInfo(&deck)
 			res.Decks = append(res.Decks, info)
@@ -360,7 +363,7 @@ func OnOpenBooster(s *Session, body []byte) ([]byte, error) {
 
 	res := hsproto.PegasusUtil_BoosterContent{}
 	booster := Booster{}
-	db.Where("booster_type = ? and opened = ?", req.GetBoosterType(), false).Preload("Cards").First(&booster)
+	db.Where("booster_type = ? and opened = ? and account_id = ?", req.GetBoosterType(), false, s.Account.ID).Preload("Cards").First(&booster)
 	log.Println(booster)
 	for _, card := range booster.Cards {
 		boosterCard := &hsproto.PegasusUtil_BoosterCard{
@@ -411,7 +414,7 @@ func OnCreateDeck(s *Session, body []byte) ([]byte, error) {
 	}
 
 	deck := Deck{
-		AccountID:    1,
+		AccountID:    s.Account.ID,
 		DeckType:     int(req.GetDeckType()),
 		Name:         req.GetName(),
 		HeroID:       int(req.GetHero()),
@@ -533,7 +536,7 @@ func OnDeleteDeck(s *Session, body []byte) ([]byte, error) {
 func (s *Session) GetBoosterInfo(kind int32) *hsproto.PegasusShared_BoosterInfo {
 	var count int32
 	db.Model(Booster{}).
-		Where("booster_type = ? and opened = ?", kind, false).
+		Where("booster_type = ? and opened = ? and account_id = ?", kind, false, s.Account.ID).
 		Count(&count)
 	res := &hsproto.PegasusShared_BoosterInfo{}
 	res.Count = proto.Int32(count)
