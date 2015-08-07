@@ -26,5 +26,8 @@ func main() {
 	serv.RegisterGameServer("WTCG", pegasus.NewServer(serv))
 
 	fmt.Printf("Listening on %s ...\n", addr)
-	serv.ListenAndServe(addr)
+	err := serv.ListenAndServe(addr)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
