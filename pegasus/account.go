@@ -37,6 +37,7 @@ func (v *Account) Init(sess *Session) {
 	sess.RegisterUtilHandler(0, 253, OnGetAchieves)
 	sess.RegisterUtilHandler(0, 267, OnCheckAccountLicenses)
 	sess.RegisterUtilHandler(1, 276, OnCheckGameLicenses)
+	sess.RegisterUtilHandler(0, 281, OnCancelQuest)
 	sess.RegisterUtilHandler(0, 284, OnValidateAchieve)
 	sess.RegisterUtilHandler(0, 291, OnSetCardBack)
 	sess.RegisterUtilHandler(0, 305, OnGetAdventureProgress)
@@ -350,6 +351,27 @@ func OnValidateAchieve(s *Session, body []byte) ([]byte, error) {
 	res := hsproto.PegasusUtil_ValidateAchieveResponse{}
 	res.Achieve = proto.Int32(req.GetAchieve())
 	return EncodeUtilResponse(285, &res)
+}
+
+func OnCancelQuest(s *Session, body []byte) ([]byte, error) {
+	req := hsproto.PegasusUtil_CancelQuest{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: check if the quest is a daily that can be canceled and if so cancel it.
+	// Note that if CancelQuestResponse.Success is true the client will request
+	//  a new set of achieves and expect a new daily
+	log.Printf("TODO: OnCancelQuest stub = %s", req.String())
+
+	res := hsproto.PegasusUtil_CancelQuestResponse {
+		QuestId:         proto.Int32(req.GetQuestId()),
+		Success:         proto.Bool(true),
+		NextQuestCancel: PegasusDate(time.Now().UTC()),
+	}
+
+	return EncodeUtilResponse(282, &res)
 }
 
 func MakeDeckInfo(deck *Deck) *hsproto.PegasusShared_DeckInfo {
