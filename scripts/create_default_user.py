@@ -17,7 +17,8 @@ def main():
 	cursor = connection.cursor()
 
 	bnet_id = None
-	updated_at = datetime.now()
+	now = datetime.now()
+	updated_at = now
 	flags = None
 
 	cursor.execute("INSERT INTO account VALUES (?, ?, ?, ?)", (
@@ -26,8 +27,33 @@ def main():
 		updated_at,
 		flags
 	))
-
 	account_id = cursor.lastrowid
+	assert account_id
+
+	achieves = []
+	for dbf_achieve in cursor.execute("SELECT * FROM dbf_achieve"):
+		id = None
+		achieve_id = dbf_achieve[0]
+		progress = 1
+		ack_progress = 1
+		completion_count = 1
+		active = False
+		date_given = now
+		date_completed = now
+
+		achieves.append((
+			id,
+			account_id,
+			achieve_id,
+			progress,
+			ack_progress,
+			completion_count,
+			active,
+			date_given,
+			date_completed
+		))
+
+	connection.executemany("INSERT INTO achieve VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", achieves)
 
 	connection.commit()
 	connection.close()

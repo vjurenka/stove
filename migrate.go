@@ -17,6 +17,7 @@ func main() {
 	conn.AutoMigrate(
 		&pegasus.Account{},
 		&pegasus.AccountLicense{},
+		&pegasus.Achieve{},
 		&pegasus.Booster{},
 		&pegasus.BoosterCard{},
 		&pegasus.Deck{},

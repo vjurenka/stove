@@ -18,6 +18,21 @@ func openDB() gorm.DB {
 	return db
 }
 
+type Achieve struct {
+	ID               int32
+	AccountID        int64
+	AchieveID        int32
+
+	Progress         int32
+	AckProgress      int32
+	CompletionCount  int32
+	Active           bool
+	// started_count doesn't seem to be used
+	DateGiven        time.Time
+	DateCompleted    time.Time
+	// do_not_ack is also not used
+}
+
 type Booster struct {
 	ID          int64
 	AccountID   int64
