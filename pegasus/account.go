@@ -308,14 +308,18 @@ func OnGetAchieves(s *Session, body []byte) ([]byte, error) {
 	dbfAchieves := []DbfAchieve{}
 	db.Find(&dbfAchieves)
 	for _, achieve := range dbfAchieves {
-		info := &hsproto.PegasusUtil_Achieve{}
-		info.Id = proto.Int32(int32(achieve.ID))
-		info.Progress = proto.Int32(1)
-		info.AckProgress = proto.Int32(1)
-		info.CompletionCount = proto.Int32(1)
-		info.StartedCount = proto.Int32(1)
-		info.DateGiven = PegasusDate(time.Now())
-		res.List = append(res.List, info)
+		achieveProgress := Achieve{}
+		db.Where("achieve_id = ? and account_id = ?", achieve.ID, s.Account.ID).First(&achieveProgress)
+
+		res.List = append(res.List, &hsproto.PegasusUtil_Achieve{
+			Id:               proto.Int32(achieve.ID),
+			Progress:         proto.Int32(achieveProgress.Progress),
+			AckProgress:      proto.Int32(achieveProgress.AckProgress),
+			CompletionCount:  proto.Int32(achieveProgress.CompletionCount),
+			Active:           proto.Bool(achieveProgress.Active),
+			DateGiven:        PegasusDate(achieveProgress.DateGiven),
+			DateCompleted:    PegasusDate(achieveProgress.DateCompleted),
+		})
 	}
 	return EncodeUtilResponse(252, &res)
 }
