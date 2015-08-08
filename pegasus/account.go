@@ -33,6 +33,7 @@ func (v *Account) Init(sess *Session) {
 	sess.RegisterUtilHandler(0, 225, OnOpenBooster)
 	sess.RegisterUtilHandler(0, 239, OnSetOptions)
 	sess.RegisterUtilHandler(0, 240, OnGetOptions)
+	sess.RegisterUtilHandler(0, 243, OnAckAchieveProgress)
 	sess.RegisterUtilHandler(0, 253, OnGetAchieves)
 	sess.RegisterUtilHandler(0, 267, OnCheckAccountLicenses)
 	sess.RegisterUtilHandler(1, 276, OnCheckGameLicenses)
@@ -322,6 +323,21 @@ func OnGetAchieves(s *Session, body []byte) ([]byte, error) {
 		})
 	}
 	return EncodeUtilResponse(252, &res)
+}
+
+func OnAckAchieveProgress(s *Session, body []byte) ([]byte, error) {
+	req := hsproto.PegasusUtil_AckAchieveProgress{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return nil, err
+	}
+
+	achieve := Achieve{}
+	db.Where("achieve_id = ? and account_id = ?", req.Id, s.Account.ID).First(&achieve)
+	achieve.AckProgress = req.GetAckProgress()
+	db.Save(&achieve)
+
+	return nil, nil
 }
 
 func OnValidateAchieve(s *Session, body []byte) ([]byte, error) {
