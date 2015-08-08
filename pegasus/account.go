@@ -241,11 +241,16 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		return EncodeUtilResponse(236, &res)
 	case "FAVORITE_HEROES":
 		res := hsproto.PegasusUtil_FavoriteHeroesResponse{}
-		for i := 2; i <= 10; i++ {
-			fav := &hsproto.PegasusShared_FavoriteHero{}
-			fav.ClassId = proto.Int32(int32(i))
+		favoriteHeros := []FavoriteHero{}
+		db.Where("account_id = ?", s.Account.ID).Find(&favoriteHeros)
+		for _, hero := range favoriteHeros {
+			card := DbfCard{}
+			db.Where("id = ?", hero.CardID).First(&card)
 			carddef := &hsproto.PegasusShared_CardDef{}
-			carddef.Asset = proto.Int32(int32(heroIdToAssetId[i]))
+			carddef.Asset = proto.Int32(int32(274))
+			carddef.Premium = proto.Int32(int32(hero.Premium))
+			fav := &hsproto.PegasusShared_FavoriteHero{}
+			fav.ClassId = proto.Int32(card.CardClass)
 			fav.Hero = carddef
 			res.FavoriteHeroes = append(res.FavoriteHeroes, fav)
 		}
@@ -618,17 +623,4 @@ func PegasusDate(t time.Time) *hsproto.PegasusShared_Date {
 		Min:   proto.Int32(int32(t.Minute())),
 		Sec:   proto.Int32(int32(t.Second())),
 	}
-}
-
-// A map from TAG_CLASS ids to DBF ids
-var heroIdToAssetId = map[int]int{
-	2:  274,
-	3:  31,
-	4:  637,
-	5:  671,
-	6:  813,
-	7:  930,
-	8:  1066,
-	9:  893,
-	10: 7,
 }
