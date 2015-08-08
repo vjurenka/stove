@@ -41,6 +41,7 @@ func (v *Account) Init(sess *Session) {
 	sess.RegisterUtilHandler(0, 284, OnValidateAchieve)
 	sess.RegisterUtilHandler(0, 291, OnSetCardBack)
 	sess.RegisterUtilHandler(0, 305, OnGetAdventureProgress)
+	sess.RegisterUtilHandler(0, 319, OnSetFavoriteHero)
 }
 
 func OnAckCardSeen(s *Session, body []byte) ([]byte, error) {
@@ -330,6 +331,29 @@ func OnGetAchieves(s *Session, body []byte) ([]byte, error) {
 	}
 	return EncodeUtilResponse(252, &res)
 }
+
+func OnSetFavoriteHero(s *Session, body []byte) ([]byte, error) {
+	req := hsproto.PegasusUtil_SetFavoriteHero{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: optionally deny changes and respond accordingly
+	favoriteHero := FavoriteHero{}
+	db.Where("class_id = ? and account_id = ?", req.GetFavoriteHero().ClassId, s.Account.ID).First(&favoriteHero)
+	requestedHeroCard := req.GetFavoriteHero().GetHero()
+	favoriteHero.CardID = requestedHeroCard.GetAsset()
+	favoriteHero.Premium = requestedHeroCard.GetPremium()
+	db.Save(&favoriteHero)
+
+	res := hsproto.PegasusUtil_SetFavoriteHeroResponse{
+		Success:      proto.Bool(true),
+		FavoriteHero: req.FavoriteHero,
+	}
+	return EncodeUtilResponse(320, &res)
+}
+
 
 func OnAckAchieveProgress(s *Session, body []byte) ([]byte, error) {
 	req := hsproto.PegasusUtil_AckAchieveProgress{}
