@@ -564,8 +564,15 @@ func OnDeckSetData(s *Session, body []byte) ([]byte, error) {
 
 	deck.LastModified = time.Now().UTC()
 	db.Save(&deck)
-
-	return nil, nil
+	
+	res := hsproto.PegasusUtil_DBAction{}
+	action := hsproto.PegasusShared_DatabaseAction(int32(5)) // DB_A_SET_DECK
+	result := hsproto.PegasusShared_DatabaseResult(int32(1)) // DB_E_SUCCESS
+	res.Action = &action
+	res.Result = &result
+	res.MetaData = proto.Int64(id)
+	
+	return EncodeUtilResponse(216, &res)
 }
 
 func OnSetCardBack(s *Session, body []byte) ([]byte, error) {
