@@ -23,6 +23,7 @@ func main() {
 		&pegasus.FavoriteHero{},
 		&pegasus.Deck{},
 		&pegasus.DeckCard{},
+		&pegasus.Draft{},
 		&pegasus.License{},
 		&pegasus.SeasonProgress{})
 
