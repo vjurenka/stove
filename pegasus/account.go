@@ -166,7 +166,7 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 			stack1.NumSeen = proto.Int32(2)
 			stack1.Count = proto.Int32(2)
 			carddef := &hsproto.PegasusShared_CardDef{}
-			carddef.Asset = proto.Int32(int32(card.ID))
+			carddef.Asset = proto.Int32(card.ID)
 			carddef.Premium = proto.Int32(0)
 			stack1.CardDef = carddef
 			res.Stacks = append(res.Stacks, stack1)
@@ -249,7 +249,7 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 			db.Where("id = ?", hero.CardID).First(&card)
 			carddef := &hsproto.PegasusShared_CardDef{}
 			carddef.Asset = proto.Int32(hero.CardID)
-			carddef.Premium = proto.Int32(int32(hero.Premium))
+			carddef.Premium = proto.Int32(hero.Premium)
 			fav := &hsproto.PegasusShared_FavoriteHero{}
 			fav.ClassId = proto.Int32(hero.ClassID)
 			fav.Hero = carddef
@@ -408,21 +408,21 @@ func MakeDeckInfo(deck *Deck) *hsproto.PegasusShared_DeckInfo {
 	info.Id = proto.Int64(deck.ID)
 	info.Name = proto.String(deck.Name)
 	info.CardBack = proto.Int32(0)
-	info.Hero = proto.Int32(int32(deck.HeroID))
+	info.Hero = proto.Int32(deck.HeroID)
 	deckType := hsproto.PegasusShared_DeckType(deck.DeckType)
 	info.DeckType = &deckType
 	info.Validity = proto.Uint64(31)
-	info.HeroPremium = proto.Int32(int32(deck.HeroPremium))
+	info.HeroPremium = proto.Int32(deck.HeroPremium)
 	info.CardBackOverride = proto.Bool(false)
 	info.HeroOverride = proto.Bool(false)
 
 	return info
 }
 
-func MakeCardDef(id, premium int) *hsproto.PegasusShared_CardDef {
+func MakeCardDef(id, premium int32) *hsproto.PegasusShared_CardDef {
 	res := &hsproto.PegasusShared_CardDef{}
-	res.Asset = proto.Int32(int32(id))
-	res.Premium = proto.Int32(int32(premium))
+	res.Asset = proto.Int32(id)
+	res.Premium = proto.Int32(premium)
 	return res
 }
 
@@ -475,7 +475,7 @@ func OnGetDeck(s *Session, body []byte) ([]byte, error) {
 		cardData := &hsproto.PegasusShared_DeckCardData{
 			Def:    MakeCardDef(card.CardID, card.Premium),
 			Handle: proto.Int32(int32(i)),
-			Qty:    proto.Int32(int32(card.Num)),
+			Qty:    proto.Int32(card.Num),
 			Prev:   proto.Int32(int32(i) - 1),
 		}
 		res.Cards = append(res.Cards, cardData)
@@ -495,8 +495,8 @@ func OnCreateDeck(s *Session, body []byte) ([]byte, error) {
 		AccountID:    s.Account.ID,
 		DeckType:     int(req.GetDeckType()),
 		Name:         req.GetName(),
-		HeroID:       int(req.GetHero()),
-		HeroPremium:  int(req.GetHeroPremium()),
+		HeroID:       int32(req.GetHero()),
+		HeroPremium:  int32(req.GetHeroPremium()),
 		CardBackID:   0,
 		LastModified: time.Now().UTC(),
 	}
@@ -541,17 +541,17 @@ func OnDeckSetData(s *Session, body []byte) ([]byte, error) {
 		}
 		c := DeckCard{
 			DeckID:  deck.ID,
-			CardID:  int(cardDef.GetAsset()),
-			Premium: int(cardDef.GetPremium()),
-			Num:	 int(qty),			
+			CardID:  int32(cardDef.GetAsset()),
+			Premium: int32(cardDef.GetPremium()),
+			Num:	 int32(qty),
 		}
 		db.Create(&c)
 	}
 
 	hero := req.GetHero()
 	if hero != nil {
-		deck.HeroID = int(hero.GetAsset())
-		deck.HeroPremium = int(hero.GetPremium())
+		deck.HeroID = int32(hero.GetAsset())
+		deck.HeroPremium = int32(hero.GetPremium())
 	}
 
 	cardBack := req.GetCardBack()

@@ -44,8 +44,8 @@ type Booster struct {
 type BoosterCard struct {
 	ID        int64
 	BoosterID int64
-	CardID    int
-	Premium   int
+	CardID    int32
+	Premium   int32
 }
 
 type FavoriteHero struct {
@@ -61,8 +61,8 @@ type Deck struct {
 	AccountID    int64
 	DeckType     int
 	Name         string
-	HeroID       int
-	HeroPremium  int
+	HeroID       int32
+	HeroPremium  int32
 	CardBackID   int32
 	LastModified time.Time
 	Cards        []DeckCard
@@ -71,9 +71,9 @@ type Deck struct {
 type DeckCard struct {
 	ID      int64
 	DeckID  int64
-	CardID  int
-	Premium int
-	Num     int
+	CardID  int32
+	Premium int32
+	Num     int32
 }
 
 type DbfAchieve struct {
@@ -91,7 +91,7 @@ type DbfAchieve struct {
 }
 
 type DbfCard struct {
-	ID            int
+	ID            int32
 	NoteMiniGuid  string
 	IsCollectible bool
 	NameEnus      string
