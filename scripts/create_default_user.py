@@ -55,6 +55,14 @@ def main():
 
 	connection.executemany("INSERT INTO achieve VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", achieves)
 
+	values = []
+	for card_id, card_class in cursor.execute("SELECT dbf_card.id, dbf_card.card_class FROM dbf_card " + \
+		"JOIN dbf_hero ON dbf_card.note_mini_guid = dbf_hero.card_id WHERE not dbf_hero.store_bought"):
+		id = None
+		premium = False
+		values.append((id, account_id, card_class, card_id, premium))
+	connection.executemany("INSERT INTO favorite_hero VALUES (?, ?, ?, ?, ?)", values)
+
 	connection.commit()
 	connection.close()
 

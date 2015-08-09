@@ -20,6 +20,7 @@ func main() {
 		&pegasus.Achieve{},
 		&pegasus.Booster{},
 		&pegasus.BoosterCard{},
+		&pegasus.FavoriteHero{},
 		&pegasus.Deck{},
 		&pegasus.DeckCard{},
 		&pegasus.License{},
