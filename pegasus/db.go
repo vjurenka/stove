@@ -48,6 +48,14 @@ type BoosterCard struct {
 	Premium   int
 }
 
+type FavoriteHero struct {
+	ID           int64
+	AccountID    int64
+	ClassID      int32
+	CardID       int32
+	Premium      int32
+}
+
 type Deck struct {
 	ID           int64
 	AccountID    int64
