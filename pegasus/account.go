@@ -532,6 +532,9 @@ func OnDeckSetData(s *Session, body []byte) ([]byte, error) {
 	if deck.AccountID != s.Account.ID {
 		return nil, fmt.Errorf("received DeckSetData for deck not owned by account")
 	}
+	
+	// Clear the deck then re-populate it
+	db.Where("deck_id = ?", id).Delete(DeckCard{})
 
 	for _, card := range req.Cards {
 		cardDef := card.GetDef()
