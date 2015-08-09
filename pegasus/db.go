@@ -87,6 +87,7 @@ type DbfCard struct {
 	NoteMiniGuid  string
 	IsCollectible bool
 	NameEnus      string
+	ClassID       int32
 }
 
 type DbfCardBack struct {

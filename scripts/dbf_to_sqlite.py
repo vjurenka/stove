@@ -101,6 +101,10 @@ def main():
 
 	# Add card names
 	connection.execute("ALTER TABLE dbf_card ADD COLUMN name_enus text")
+
+	# Add card class
+	connection.execute("ALTER TABLE dbf_card ADD COLUMN class_id int")
+
 	cur = connection.cursor()
 	cur.execute("SELECT id, note_mini_guid FROM dbf_card")
 	rows = cur.fetchall()
@@ -116,6 +120,11 @@ def main():
 				continue
 			name = e.find('Tag[@enumID="185"]/enUS').text
 			connection.execute("UPDATE dbf_card SET name_enus = ? WHERE id = ?", (name, pk))
+			card_class_elem = e.find('Tag[@enumID="199"]')
+			card_class = 0
+			if card_class_elem is not None:
+				card_class = int(card_class_elem.attrib["value"])
+			connection.execute("UPDATE dbf_card SET class_id = ? WHERE id = ?", (card_class, pk))
 
 	connection.commit()
 	connection.close()
