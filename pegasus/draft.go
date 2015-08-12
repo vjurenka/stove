@@ -12,6 +12,7 @@ func (s *Draft) Init(sess *Session) {
 	sess.RegisterUtilHandler(0, 244, OnDraftGetPicksAndContents)
 	sess.RegisterUtilHandler(0, 242, OnDraftRetire)
 	sess.RegisterUtilHandler(0, 245, OnDraftMakePick)
+	sess.RegisterUtilHandler(0, 287, OnDraftAckRewards)
 }
 
 func MakeHeroChoices() (choices []DraftChoice) {
@@ -237,4 +238,17 @@ func OnDraftRetire(s *Session, body []byte) ([]byte, error) {
 		Chest:  &chest,
 	}
 	return EncodeUtilResponse(247, &res)
+}
+
+func OnDraftAckRewards(s *Session, body []byte) ([]byte, error) {
+	req := hsproto.PegasusUtil_DraftAckRewards{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return nil, err
+	}
+
+	res := hsproto.PegasusUtil_DraftRewardsAcked{
+		DeckId: req.DeckId,
+	}
+	return EncodeUtilResponse(288, &res)
 }
