@@ -16,6 +16,15 @@ func OnDraftGetPicksAndContents(s *Session, body []byte) ([]byte, error) {
 		return nil, err
 	}
 
+	draft := Draft{}
+	if db.Where("not ended and account_id = ?", s.Account.ID).First(&draft).RecordNotFound() {
+		code := hsproto.PegasusUtil_DraftError_DE_NOT_IN_DRAFT
+		res := hsproto.PegasusUtil_DraftError{
+			ErrorCode: &code,
+		}
+
+		return EncodeUtilResponse(251, &res)
+	}
 	heroDef := MakeCardDef(834, 0)
 
 	res := hsproto.PegasusUtil_DraftChoicesAndContents{
