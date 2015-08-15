@@ -93,17 +93,37 @@ func OnDraftGetPicksAndContents(s *Session, body []byte) ([]byte, error) {
 
 		return EncodeUtilResponse(251, &res)
 	}
-	heroDef := MakeCardDef(834, 0)
 
-	res := hsproto.PegasusUtil_DraftChoicesAndContents{
-		DeckId:  proto.Int64(0),
-		Slot:    proto.Int32(0),
-		Wins:    proto.Int32(12),
-		Losses:  proto.Int32(0),
-		HeroDef: heroDef,
+	choices := []DraftChoice{}
+	db.Where("draft_id = ?", draft.ID).Find(&choices)
+	choiceList := ChoicesToCardDefs(choices)
+
+	deck := Deck{}
+	db.Where("id = ?", draft.DeckID).Preload("Cards").First(&deck)
+	heroDef := hsproto.PegasusShared_CardDef{
+		Asset:   proto.Int32(deck.HeroID),
+		Premium: proto.Int32(0),
+	}
+	cards := []*hsproto.PegasusShared_DeckCardData{}
+	for i, card := range deck.Cards {
+		cards = append(cards, &hsproto.PegasusShared_DeckCardData{
+			Def:    MakeCardDef(card.CardID, 0),
+			Handle: proto.Int32(int32(i)),
+			Qty:    proto.Int32(0),
+			Prev:   proto.Int32(int32(i) - 1),
+		})
 	}
 
-	// stub
+	res := hsproto.PegasusUtil_DraftChoicesAndContents{
+		DeckId:     proto.Int64(draft.DeckID),
+		Slot:       proto.Int32(draft.CurrentSlot),
+		Wins:       proto.Int32(draft.Wins),
+		Losses:     proto.Int32(draft.Losses),
+		Cards:      cards,
+		ChoiceList: choiceList,
+		HeroDef:    &heroDef,
+	}
+
 	return EncodeUtilResponse(248, &res)
 }
 
@@ -145,7 +165,7 @@ func OnDraftMakePick(s *Session, body []byte) ([]byte, error) {
 		db.Save(&card)
 	}
 
-	if (draft.CurrentSlot < 30) {
+	if draft.CurrentSlot < 30 {
 		draft.Choices = MakeCardChoices(draft.CurrentSlot)
 	}
 	draft.CurrentSlot += 1
