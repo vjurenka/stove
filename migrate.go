@@ -24,7 +24,11 @@ func main() {
 		&pegasus.Deck{},
 		&pegasus.DeckCard{},
 		&pegasus.License{},
-		&pegasus.SeasonProgress{})
+		&pegasus.SeasonProgress{},
+		&pegasus.Bundle{},
+		&pegasus.ProductGoldCost{},
+		&pegasus.Product{},
+	)
 
 	conn.Close()
 }

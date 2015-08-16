@@ -127,3 +127,27 @@ type License struct {
 	ID        int64
 	ProductID int
 }
+
+type Bundle struct {
+	ID        int64
+	ProductID string
+	AppleID   string
+	AmazonID  string
+	GoogleID  string
+	Items     []Product `gorm:"many2many:bundle_products;"`
+	EventName string
+}
+
+type ProductGoldCost struct {
+	ID          int64
+	ProductType int
+	PackType    int32
+	Cost        int64
+}
+
+type Product struct {
+	ID          int64
+	ProductType int
+	ProductData int32
+	Quantity    int32
+}
