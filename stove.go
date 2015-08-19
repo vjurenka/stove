@@ -24,7 +24,7 @@ func migrate() {
 
 	conn.LogMode(true)
 	conn.SingularTable(true)
-	conn.AutoMigrate(
+	err = conn.AutoMigrate(
 		&pegasus.Account{},
 		&pegasus.AccountLicense{},
 		&pegasus.Achieve{},
@@ -38,9 +38,13 @@ func migrate() {
 		&pegasus.Bundle{},
 		&pegasus.ProductGoldCost{},
 		&pegasus.Product{},
-	)
+	).Error
 
 	conn.Close()
+
+	if err != nil {
+		panic(err)
+	}
 }
 
 func main() {
