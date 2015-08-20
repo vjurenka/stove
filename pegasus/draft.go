@@ -5,8 +5,6 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-type Draft struct{}
-
 func (s *Draft) Init(sess *Session) {
 	sess.RegisterUtilHandler(0, 244, OnDraftGetPicksAndContents)
 }

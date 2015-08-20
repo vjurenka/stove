@@ -38,6 +38,8 @@ func migrate() {
 		&pegasus.Bundle{},
 		&pegasus.ProductGoldCost{},
 		&pegasus.Product{},
+		&pegasus.Draft{},
+		&pegasus.DraftChoice{},
 	).Error
 
 	conn.Close()

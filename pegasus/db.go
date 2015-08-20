@@ -76,6 +76,29 @@ type DeckCard struct {
 	Num     int32
 }
 
+type Draft struct {
+	ID          int64
+	AccountID   int64
+	DeckID      int64
+	Wins        int32
+	Losses      int32
+	CreatedAt   time.Time
+	EndedAt     time.Time
+	Ended       bool
+	Choices     []DraftChoice
+	CurrentSlot int32
+	// PurchasedWithGold bool
+}
+
+type DraftChoice struct {
+	ID          int
+	DraftID     int64
+	CardID      int32
+	ChoiceIndex int
+	Slot        int32
+	//Premium int32
+}
+
 type DbfAchieve struct {
 	ID          int32
 	AchType     string
