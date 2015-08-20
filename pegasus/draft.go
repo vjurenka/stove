@@ -10,6 +10,7 @@ import (
 func (s *Draft) Init(sess *Session) {
 	sess.RegisterUtilHandler(0, 235, OnDraftBegin)
 	sess.RegisterUtilHandler(0, 244, OnDraftGetPicksAndContents)
+	sess.RegisterUtilHandler(0, 242, OnDraftRetire)
 	sess.RegisterUtilHandler(0, 245, OnDraftMakePick)
 }
 
@@ -184,4 +185,56 @@ func OnDraftMakePick(s *Session, body []byte) ([]byte, error) {
 	}
 
 	return EncodeUtilResponse(249, &res)
+}
+
+func MakeChest() (chest hsproto.PegasusShared_RewardChest) {
+	// TODO take arguments to determine the contents
+	// There are up to 5 bags each which can hold a booster, card, dust or gold
+
+	chest.Bag1 = &hsproto.PegasusShared_RewardBag{
+		RewardBooster: &hsproto.PegasusShared_ProfileNoticeRewardBooster{
+			BoosterType:  proto.Int32(1),
+			BoosterCount: proto.Int32(1),
+		},
+	}
+	chest.Bag2 = &hsproto.PegasusShared_RewardBag{
+		RewardCard: &hsproto.PegasusShared_ProfileNoticeRewardCard{
+			Card:     MakeCardDef(2078, 1),
+			Quantity: proto.Int32(1),
+		},
+	}
+	chest.Bag3 = &hsproto.PegasusShared_RewardBag{
+		RewardDust: &hsproto.PegasusShared_ProfileNoticeRewardDust{
+			Amount: proto.Int32(69),
+		},
+	}
+	chest.Bag4 = &hsproto.PegasusShared_RewardBag{
+		RewardGold: &hsproto.PegasusShared_ProfileNoticeRewardGold{
+			Amount: proto.Int32(42),
+		},
+	}
+	return chest
+}
+
+func OnDraftRetire(s *Session, body []byte) ([]byte, error) {
+	req := hsproto.PegasusUtil_DraftRetire{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		return nil, err
+	}
+
+	draft := Draft{}
+	if db.Where("not ended and account_id = ?", s.Account.ID).First(&draft).RecordNotFound() {
+		return nil, fmt.Errorf("received OnDraftRetire for account with no active draft")
+	}
+	draft.Ended = true
+	draft.EndedAt = time.Now().UTC()
+	db.Save(&draft)
+
+	chest := MakeChest()
+	res := hsproto.PegasusUtil_DraftRetired{
+		DeckId: req.DeckId,
+		Chest:  &chest,
+	}
+	return EncodeUtilResponse(247, &res)
 }
