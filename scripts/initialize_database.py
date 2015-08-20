@@ -239,6 +239,17 @@ def main():
 			cards.append((id, deck_id, card_id, premium, 2))
 		connection.executemany("INSERT INTO deck_card VALUES (?, ?, ?, ?, ?)", cards)
 
+	# hardcode the arena cost for now. TODO: the rest of the store items
+	product_type = 2
+	pack_type = 0
+	cost = 150
+	cursor.execute("INSERT INTO product_gold_cost VALUES (?, ?, ?, ?)", (
+		None,
+		product_type,
+		pack_type,
+		cost
+	))
+
 	connection.commit()
 	connection.close()
 

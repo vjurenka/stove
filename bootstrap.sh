@@ -26,8 +26,8 @@ echo "Creating database in $DBFILE"
 echo "Creating pegasus tables"
 go run "$BASEDIR/stove.go" -migrate
 
-echo "Prepopulating decks"
-"$BASEDIR/scripts/create_basic_decks.py" "$DBFILE"
+echo "Initializing database"
+"$BASEDIR/scripts/initialize_database.py" "$DBFILE"
 
 echo "Creating default user"
 "$BASEDIR/scripts/create_default_user.py" "$DBFILE"
