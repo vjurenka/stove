@@ -46,7 +46,7 @@ func (v *Account) Init(sess *Session) {
 }
 
 func OnAckCardSeen(s *Session, body []byte) ([]byte, error) {
-	req := util.UpdateLogin{}
+	req := util.AckCardSeen{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
