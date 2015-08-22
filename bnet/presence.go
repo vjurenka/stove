@@ -1,7 +1,7 @@
 package bnet
 
 import (
-	"github.com/HearthSim/hs-proto/go"
+	"github.com/HearthSim/hs-proto-go/bnet/presence_service"
 	"github.com/golang/protobuf/proto"
 	"log"
 )
@@ -51,7 +51,7 @@ func (s *PresenceService) Invoke(method int, body []byte) (resp []byte, err erro
 }
 
 func (s *PresenceService) Subscribe(body []byte) error {
-	req := hsproto.BnetProtocolPresence_SubscribeRequest{}
+	req := presence_service.SubscribeRequest{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return err
@@ -65,7 +65,7 @@ func (s *PresenceService) Unsubscribe(body []byte) error {
 }
 
 func (s *PresenceService) Update(body []byte) error {
-	req := hsproto.BnetProtocolPresence_UpdateRequest{}
+	req := presence_service.UpdateRequest{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return err

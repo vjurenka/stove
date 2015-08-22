@@ -1,7 +1,7 @@
 package pegasus
 
 import (
-	"github.com/HearthSim/hs-proto/go"
+	"github.com/HearthSim/hs-proto-go/pegasus/util"
 	"github.com/golang/protobuf/proto"
 	"time"
 )
@@ -35,7 +35,7 @@ func OnUtilSubscribe(s *Session, body []byte) ([]byte, error) {
 		s.route = 1
 	}
 	s.subscribed = time.Now()
-	res := hsproto.PegasusUtil_SubscribeResponse{}
+	res := util.SubscribeResponse{}
 	res.Route = proto.Uint64(s.route)
 	res.SupportedFeatures = proto.Uint64(3)
 	res.KeepAliveSecs = proto.Uint64(uint64(s.timeout.Seconds()))

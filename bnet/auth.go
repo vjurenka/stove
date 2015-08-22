@@ -1,7 +1,8 @@
 package bnet
 
 import (
-	"github.com/HearthSim/hs-proto/go"
+	"github.com/HearthSim/hs-proto-go/bnet/authentication_service"
+	"github.com/HearthSim/hs-proto-go/bnet/entity"
 	"github.com/golang/protobuf/proto"
 	"log"
 	"time"
@@ -67,7 +68,7 @@ func (s *AuthServerService) Invoke(method int, body []byte) (resp []byte, err er
 }
 
 func (s *AuthServerService) Logon(body []byte) error {
-	req := hsproto.BnetProtocolAuthentication_LogonRequest{}
+	req := authentication_service.LogonRequest{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return err
@@ -90,7 +91,7 @@ func (s *AuthServerService) ModuleMessage(body []byte) error {
 }
 
 func (s *AuthServerService) SelectGameAccount_DEPRECATED(body []byte) error {
-	req := hsproto.BnetProtocol_EntityId{}
+	req := entity.EntityId{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return err
@@ -108,7 +109,7 @@ func (s *AuthServerService) SelectGameAccount(body []byte) error {
 }
 
 func (s *AuthServerService) VerifyWebCredentials(body []byte) error {
-	req := hsproto.BnetProtocolAuthentication_VerifyWebCredentialsRequest{}
+	req := authentication_service.VerifyWebCredentialsRequest{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return err
@@ -121,13 +122,13 @@ func (s *AuthServerService) VerifyWebCredentials(body []byte) error {
 }
 
 func (s *AuthServerService) CompleteLogin() error {
-	res := hsproto.BnetProtocolAuthentication_LogonResult{}
+	res := authentication_service.LogonResult{}
 	if !s.loggedIn {
 		res.ErrorCode = proto.Uint32(ErrorNoAuth)
 	} else {
 		res.ErrorCode = proto.Uint32(ErrorOK)
 		res.Account = EntityId(0, 1)
-		res.GameAccount = make([]*hsproto.BnetProtocol_EntityId, 1)
+		res.GameAccount = make([]*entity.EntityId, 1)
 		res.GameAccount[0] = EntityId(1, 1)
 		res.ConnectedRegion = proto.Uint32(0x5553) // 'US'
 
@@ -149,7 +150,7 @@ func (s *AuthServerService) CompleteLogin() error {
 }
 
 func (s *AuthServerService) FinishQueue() {
-	update := hsproto.BnetProtocolAuthentication_LogonQueueUpdateRequest{}
+	update := authentication_service.LogonQueueUpdateRequest{}
 	update.Position = proto.Uint32(0)
 	update.EstimatedTime = proto.Uint64(0)
 	update.EtaDeviationInSec = proto.Uint64(0)

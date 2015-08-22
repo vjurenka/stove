@@ -1,9 +1,10 @@
 package pegasus
 
 import (
-	"github.com/HearthSim/hs-proto/go"
-	"github.com/golang/protobuf/proto"
 	"fmt"
+	"github.com/HearthSim/hs-proto-go/pegasus/shared"
+	"github.com/HearthSim/hs-proto-go/pegasus/util"
+	"github.com/golang/protobuf/proto"
 	"log"
 	"time"
 )
@@ -45,7 +46,7 @@ func (v *Account) Init(sess *Session) {
 }
 
 func OnAckCardSeen(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_UpdateLogin{}
+	req := util.UpdateLogin{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
@@ -63,25 +64,25 @@ func OnCheckGameLicenses(s *Session, body []byte) ([]byte, error) {
 }
 
 func OnCheckLicenses(accountLevel bool) ([]byte, error) {
-	res := hsproto.PegasusUtil_CheckLicensesResponse{}
+	res := util.CheckLicensesResponse{}
 	res.AccountLevel = proto.Bool(accountLevel)
 	res.Success = proto.Bool(true)
 	return EncodeUtilResponse(277, &res)
 }
 
 func OnUpdateLogin(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_UpdateLogin{}
+	req := util.UpdateLogin{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("req = %s", req.String())
-	res := hsproto.PegasusUtil_UpdateLoginComplete{}
+	res := util.UpdateLoginComplete{}
 	return EncodeUtilResponse(307, &res)
 }
 
 func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_GetAccountInfo{}
+	req := util.GetAccountInfo{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
@@ -89,12 +90,12 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 	log.Printf("req = %s", req.String())
 	switch req.Request.String() {
 	case "CAMPAIGN_INFO":
-		res := hsproto.PegasusUtil_ProfileProgress{}
+		res := util.ProfileProgress{}
 		res.Progress = proto.Int64(6)  // ILLIDAN_COMPLETE
 		res.BestForge = proto.Int32(0) // Arena wins
 		return EncodeUtilResponse(233, &res)
 	case "BOOSTERS":
-		res := hsproto.PegasusUtil_BoosterList{}
+		res := util.BoosterList{}
 		classicPacks := s.GetBoosterInfo(1)
 		gvgPacks := s.GetBoosterInfo(9)
 		tgtPacks := s.GetBoosterInfo(10)
@@ -109,11 +110,11 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		}
 		return EncodeUtilResponse(224, &res)
 	case "FEATURES":
-		res := hsproto.PegasusUtil_GuardianVars{}
+		res := util.GuardianVars{}
 		res.ShowUserUI = proto.Int32(1)
 		return EncodeUtilResponse(264, &res)
 	case "MEDAL_INFO":
-		res := hsproto.PegasusUtil_MedalInfo{}
+		res := util.MedalInfo{}
 		res.SeasonWins = proto.Int32(0)
 		res.Stars = proto.Int32(2)
 		res.Streak = proto.Int32(0)
@@ -123,9 +124,9 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		res.CanLose = proto.Bool(false)
 		return EncodeUtilResponse(232, &res)
 	case "MEDAL_HISTORY":
-		res := hsproto.PegasusUtil_MedalHistory{}
+		res := util.MedalHistory{}
 		for i := int32(1); i <= 3; i++ {
-			info := &hsproto.PegasusUtil_MedalHistoryInfo{}
+			info := &util.MedalHistoryInfo{}
 			info.When = PegasusDate(time.Date(2015, 8, 1, 7, 0, 0, 0, time.UTC))
 			info.Season = proto.Int32(i)
 			info.Stars = proto.Int32(0)
@@ -137,19 +138,19 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		}
 		return EncodeUtilResponse(234, &res)
 	case "NOTICES":
-		res := hsproto.PegasusUtil_ProfileNotices{}
+		res := util.ProfileNotices{}
 		return EncodeUtilResponse(212, &res)
 	case "DECK_LIST":
-		res := hsproto.PegasusUtil_DeckList{}
+		res := util.DeckList{}
 		basicDecks := []Deck{}
-		deckType := hsproto.PegasusShared_DeckType_PRECON_DECK
+		deckType := shared.DeckType_PRECON_DECK
 		db.Where("deck_type = ?", deckType).Find(&basicDecks)
 		for _, deck := range basicDecks {
 			info := MakeDeckInfo(&deck)
 			res.Decks = append(res.Decks, info)
 		}
 		decks := []Deck{}
-		deckType = hsproto.PegasusShared_DeckType_NORMAL_DECK
+		deckType = shared.DeckType_NORMAL_DECK
 		db.Where("deck_type = ? and account_id = ?", deckType, s.Account.ID).Find(&decks)
 		for _, deck := range decks {
 			info := MakeDeckInfo(&deck)
@@ -157,15 +158,15 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		}
 		return EncodeUtilResponse(202, &res)
 	case "COLLECTION":
-		res := hsproto.PegasusUtil_Collection{}
+		res := util.Collection{}
 		dbfCards := []DbfCard{}
 		db.Where("is_collectible").Find(&dbfCards)
 		for _, card := range dbfCards {
-			stack1 := &hsproto.PegasusShared_CardStack{}
+			stack1 := &shared.CardStack{}
 			stack1.LatestInsertDate = PegasusDate(time.Now().UTC())
 			stack1.NumSeen = proto.Int32(2)
 			stack1.Count = proto.Int32(2)
-			carddef := &hsproto.PegasusShared_CardDef{}
+			carddef := &shared.CardDef{}
 			carddef.Asset = proto.Int32(card.ID)
 			carddef.Premium = proto.Int32(0)
 			stack1.CardDef = carddef
@@ -173,28 +174,28 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		}
 		return EncodeUtilResponse(207, &res)
 	case "DECK_LIMIT":
-		res := hsproto.PegasusUtil_ProfileDeckLimit{}
+		res := util.ProfileDeckLimit{}
 		res.DeckLimit = proto.Int32(9)
 		return EncodeUtilResponse(231, &res)
 	case "CARD_VALUES":
-		res := hsproto.PegasusUtil_CardValues{}
+		res := util.CardValues{}
 		res.CardNerfIndex = proto.Int32(0)
 		return EncodeUtilResponse(260, &res)
 	case "ARCANE_DUST_BALANCE":
-		res := hsproto.PegasusUtil_ArcaneDustBalance{}
+		res := util.ArcaneDustBalance{}
 		res.Balance = proto.Int64(10000)
 		return EncodeUtilResponse(262, &res)
 	case "GOLD_BALANCE":
-		res := hsproto.PegasusUtil_GoldBalance{}
+		res := util.GoldBalance{}
 		res.Cap = proto.Int64(999999)
 		res.CapWarning = proto.Int64(2000)
 		res.CappedBalance = proto.Int64(1234)
 		res.BonusBalance = proto.Int64(0)
 		return EncodeUtilResponse(278, &res)
 	case "HERO_XP":
-		res := hsproto.PegasusUtil_HeroXP{}
+		res := util.HeroXP{}
 		for i := 2; i <= 10; i++ {
-			info := &hsproto.PegasusUtil_HeroXPInfo{}
+			info := &util.HeroXPInfo{}
 			level := 2*i + 5
 			maxXp := 60 + level*10
 			info.ClassId = proto.Int32(int32(i))
@@ -205,10 +206,10 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		}
 		return EncodeUtilResponse(283, &res)
 	case "NOT_SO_MASSIVE_LOGIN":
-		res := hsproto.PegasusUtil_NotSoMassiveLoginReply{}
+		res := util.NotSoMassiveLoginReply{}
 		return EncodeUtilResponse(300, &res)
 	case "REWARD_PROGRESS":
-		res := hsproto.PegasusUtil_RewardProgress{}
+		res := util.RewardProgress{}
 		nextMonth := time.Date(2015, 8, 1, 7, 0, 0, 0, time.UTC)
 		res.SeasonEnd = PegasusDate(nextMonth)
 		res.WinsPerGold = proto.Int32(3)
@@ -221,18 +222,18 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		res.EventTimingMod = proto.Float32(0.291667)
 		return EncodeUtilResponse(271, &res)
 	case "PVP_QUEUE":
-		res := hsproto.PegasusUtil_PlayQueue{}
-		queue := hsproto.PegasusShared_PlayQueueInfo{}
-		gametype := hsproto.PegasusShared_BnetGameType_BGT_NORMAL
+		res := util.PlayQueue{}
+		queue := shared.PlayQueueInfo{}
+		gametype := shared.BnetGameType_BGT_NORMAL
 		queue.GameType = &gametype
 		res.Queue = &queue
 		return EncodeUtilResponse(286, &res)
 
 	case "PLAYER_RECORD":
-		res := hsproto.PegasusUtil_PlayerRecords{}
+		res := util.PlayerRecords{}
 		return EncodeUtilResponse(270, &res)
 	case "CARD_BACKS":
-		res := hsproto.PegasusUtil_CardBacks{}
+		res := util.CardBacks{}
 		dbfCardBacks := []DbfCardBack{}
 		res.DefaultCardBack = proto.Int32(0)
 		db.Find(&dbfCardBacks)
@@ -241,26 +242,26 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		}
 		return EncodeUtilResponse(236, &res)
 	case "FAVORITE_HEROES":
-		res := hsproto.PegasusUtil_FavoriteHeroesResponse{}
+		res := util.FavoriteHeroesResponse{}
 		favoriteHeros := []FavoriteHero{}
 		db.Where("account_id = ?", s.Account.ID).Find(&favoriteHeros)
 		for _, hero := range favoriteHeros {
 			card := DbfCard{}
 			db.Where("id = ?", hero.CardID).First(&card)
-			carddef := &hsproto.PegasusShared_CardDef{}
+			carddef := &shared.CardDef{}
 			carddef.Asset = proto.Int32(hero.CardID)
 			carddef.Premium = proto.Int32(hero.Premium)
-			fav := &hsproto.PegasusShared_FavoriteHero{}
+			fav := &shared.FavoriteHero{}
 			fav.ClassId = proto.Int32(hero.ClassID)
 			fav.Hero = carddef
 			res.FavoriteHeroes = append(res.FavoriteHeroes, fav)
 		}
 		return EncodeUtilResponse(318, &res)
 	case "ACCOUNT_LICENSES":
-		res := hsproto.PegasusUtil_AccountLicensesInfoResponse{}
+		res := util.AccountLicensesInfoResponse{}
 		return EncodeUtilResponse(325, &res)
 	case "BOOSTER_TALLY":
-		res := hsproto.PegasusUtil_BoosterTallyList{}
+		res := util.BoosterTallyList{}
 		return EncodeUtilResponse(313, &res)
 	default:
 
@@ -269,12 +270,12 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 }
 
 func OnGetAdventureProgress(s *Session, body []byte) ([]byte, error) {
-	res := hsproto.PegasusUtil_AdventureProgressResponse{}
+	res := util.AdventureProgressResponse{}
 	return EncodeUtilResponse(306, &res)
 }
 
 func OnSetOptions(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_SetOptions{}
+	req := util.SetOptions{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
@@ -284,22 +285,22 @@ func OnSetOptions(s *Session, body []byte) ([]byte, error) {
 }
 
 func OnGetOptions(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_GetOptions{}
+	req := util.GetOptions{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("req = %s", req.String())
-	res := hsproto.PegasusUtil_ClientOptions{}
-	res.Options = append(res.Options, &hsproto.PegasusUtil_ClientOption{
+	res := util.ClientOptions{}
+	res.Options = append(res.Options, &util.ClientOption{
 		Index:    proto.Int32(1),
 		AsUint64: proto.Uint64(0x20FFFF3FFFCCFCFF),
 	})
-	res.Options = append(res.Options, &hsproto.PegasusUtil_ClientOption{
+	res.Options = append(res.Options, &util.ClientOption{
 		Index:    proto.Int32(2),
 		AsUint64: proto.Uint64(0xF0BFFFEF3FFF),
 	})
-	res.Options = append(res.Options, &hsproto.PegasusUtil_ClientOption{
+	res.Options = append(res.Options, &util.ClientOption{
 		Index:   proto.Int32(18),
 		AsInt64: proto.Int64(0xB765A8C),
 	})
@@ -307,33 +308,33 @@ func OnGetOptions(s *Session, body []byte) ([]byte, error) {
 }
 
 func OnGetAchieves(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_GetAchieves{}
+	req := util.GetAchieves{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
 	}
-	res := hsproto.PegasusUtil_Achieves{}
+	res := util.Achieves{}
 	dbfAchieves := []DbfAchieve{}
 	db.Find(&dbfAchieves)
 	for _, achieve := range dbfAchieves {
 		achieveProgress := Achieve{}
 		db.Where("achieve_id = ? and account_id = ?", achieve.ID, s.Account.ID).First(&achieveProgress)
 
-		res.List = append(res.List, &hsproto.PegasusUtil_Achieve{
-			Id:               proto.Int32(achieve.ID),
-			Progress:         proto.Int32(achieveProgress.Progress),
-			AckProgress:      proto.Int32(achieveProgress.AckProgress),
-			CompletionCount:  proto.Int32(achieveProgress.CompletionCount),
-			Active:           proto.Bool(achieveProgress.Active),
-			DateGiven:        PegasusDate(achieveProgress.DateGiven),
-			DateCompleted:    PegasusDate(achieveProgress.DateCompleted),
+		res.List = append(res.List, &util.Achieve{
+			Id:              proto.Int32(achieve.ID),
+			Progress:        proto.Int32(achieveProgress.Progress),
+			AckProgress:     proto.Int32(achieveProgress.AckProgress),
+			CompletionCount: proto.Int32(achieveProgress.CompletionCount),
+			Active:          proto.Bool(achieveProgress.Active),
+			DateGiven:       PegasusDate(achieveProgress.DateGiven),
+			DateCompleted:   PegasusDate(achieveProgress.DateCompleted),
 		})
 	}
 	return EncodeUtilResponse(252, &res)
 }
 
 func OnSetFavoriteHero(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_SetFavoriteHero{}
+	req := util.SetFavoriteHero{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
@@ -347,16 +348,15 @@ func OnSetFavoriteHero(s *Session, body []byte) ([]byte, error) {
 	favoriteHero.Premium = requestedHeroCard.GetPremium()
 	db.Save(&favoriteHero)
 
-	res := hsproto.PegasusUtil_SetFavoriteHeroResponse{
+	res := util.SetFavoriteHeroResponse{
 		Success:      proto.Bool(true),
 		FavoriteHero: req.FavoriteHero,
 	}
 	return EncodeUtilResponse(320, &res)
 }
 
-
 func OnAckAchieveProgress(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_AckAchieveProgress{}
+	req := util.AckAchieveProgress{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
@@ -371,19 +371,19 @@ func OnAckAchieveProgress(s *Session, body []byte) ([]byte, error) {
 }
 
 func OnValidateAchieve(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_ValidateAchieve{}
+	req := util.ValidateAchieve{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("req = %s", req.String())
-	res := hsproto.PegasusUtil_ValidateAchieveResponse{}
+	res := util.ValidateAchieveResponse{}
 	res.Achieve = proto.Int32(req.GetAchieve())
 	return EncodeUtilResponse(285, &res)
 }
 
 func OnCancelQuest(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_CancelQuest{}
+	req := util.CancelQuest{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
@@ -394,7 +394,7 @@ func OnCancelQuest(s *Session, body []byte) ([]byte, error) {
 	//  a new set of achieves and expect a new daily
 	log.Printf("TODO: OnCancelQuest stub = %s", req.String())
 
-	res := hsproto.PegasusUtil_CancelQuestResponse {
+	res := util.CancelQuestResponse{
 		QuestId:         proto.Int32(req.GetQuestId()),
 		Success:         proto.Bool(true),
 		NextQuestCancel: PegasusDate(time.Now().UTC()),
@@ -403,13 +403,13 @@ func OnCancelQuest(s *Session, body []byte) ([]byte, error) {
 	return EncodeUtilResponse(282, &res)
 }
 
-func MakeDeckInfo(deck *Deck) *hsproto.PegasusShared_DeckInfo {
-	info := &hsproto.PegasusShared_DeckInfo{}
+func MakeDeckInfo(deck *Deck) *shared.DeckInfo {
+	info := &shared.DeckInfo{}
 	info.Id = proto.Int64(deck.ID)
 	info.Name = proto.String(deck.Name)
 	info.CardBack = proto.Int32(0)
 	info.Hero = proto.Int32(deck.HeroID)
-	deckType := hsproto.PegasusShared_DeckType(deck.DeckType)
+	deckType := shared.DeckType(deck.DeckType)
 	info.DeckType = &deckType
 	info.Validity = proto.Uint64(31)
 	info.HeroPremium = proto.Int32(deck.HeroPremium)
@@ -419,26 +419,26 @@ func MakeDeckInfo(deck *Deck) *hsproto.PegasusShared_DeckInfo {
 	return info
 }
 
-func MakeCardDef(id, premium int32) *hsproto.PegasusShared_CardDef {
-	res := &hsproto.PegasusShared_CardDef{}
+func MakeCardDef(id, premium int32) *shared.CardDef {
+	res := &shared.CardDef{}
 	res.Asset = proto.Int32(id)
 	res.Premium = proto.Int32(premium)
 	return res
 }
 
 func OnOpenBooster(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_OpenBooster{}
+	req := util.OpenBooster{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
 	}
 
-	res := hsproto.PegasusUtil_BoosterContent{}
+	res := util.BoosterContent{}
 	booster := Booster{}
 	db.Where("booster_type = ? and opened = ? and account_id = ?", req.GetBoosterType(), false, s.Account.ID).Preload("Cards").First(&booster)
 	log.Println(booster)
 	for _, card := range booster.Cards {
-		boosterCard := &hsproto.PegasusUtil_BoosterCard{
+		boosterCard := &util.BoosterCard{
 			CardDef:    MakeCardDef(card.CardID, card.Premium),
 			InsertDate: PegasusDate(time.Now().UTC()),
 		}
@@ -449,7 +449,7 @@ func OnOpenBooster(s *Session, body []byte) ([]byte, error) {
 }
 
 func OnGetDeck(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_GetDeck{}
+	req := util.GetDeck{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
@@ -460,19 +460,19 @@ func OnGetDeck(s *Session, body []byte) ([]byte, error) {
 	db.First(&deck, id)
 
 	// TODO: does this also need to allow brawl/arena decks? what about AI decks?
-	if deck.DeckType != int(hsproto.PegasusShared_DeckType_PRECON_DECK) && deck.AccountID != s.Account.ID {
+	if deck.DeckType != int(shared.DeckType_PRECON_DECK) && deck.AccountID != s.Account.ID {
 		return nil, fmt.Errorf("received OnGetDeck for non-precon deck not owned by account")
 	}
 
 	deckCards := []DeckCard{}
 	db.Where("deck_id = ?", id).Find(&deckCards)
 
-	res := hsproto.PegasusUtil_DeckContents{
+	res := util.DeckContents{
 		Deck: proto.Int64(id),
 	}
 
 	for i, card := range deckCards {
-		cardData := &hsproto.PegasusShared_DeckCardData{
+		cardData := &shared.DeckCardData{
 			Def:    MakeCardDef(card.CardID, card.Premium),
 			Handle: proto.Int32(int32(i)),
 			Qty:    proto.Int32(card.Num),
@@ -485,7 +485,7 @@ func OnGetDeck(s *Session, body []byte) ([]byte, error) {
 }
 
 func OnCreateDeck(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_CreateDeck{}
+	req := util.CreateDeck{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
@@ -502,9 +502,9 @@ func OnCreateDeck(s *Session, body []byte) ([]byte, error) {
 	}
 	db.Create(&deck)
 
-	res := hsproto.PegasusUtil_DeckCreated{}
+	res := util.DeckCreated{}
 
-	info := hsproto.PegasusShared_DeckInfo{}
+	info := shared.DeckInfo{}
 	info.Id = proto.Int64(deck.ID)
 	info.Name = req.Name
 	info.DeckType = req.DeckType
@@ -519,7 +519,7 @@ func OnCreateDeck(s *Session, body []byte) ([]byte, error) {
 }
 
 func OnDeckSetData(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_DeckSetData{}
+	req := util.DeckSetData{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
@@ -532,7 +532,7 @@ func OnDeckSetData(s *Session, body []byte) ([]byte, error) {
 	if deck.AccountID != s.Account.ID {
 		return nil, fmt.Errorf("received DeckSetData for deck not owned by account")
 	}
-	
+
 	// Clear the deck then re-populate it
 	db.Where("deck_id = ?", id).Delete(DeckCard{})
 
@@ -546,7 +546,7 @@ func OnDeckSetData(s *Session, body []byte) ([]byte, error) {
 			DeckID:  deck.ID,
 			CardID:  int32(cardDef.GetAsset()),
 			Premium: int32(cardDef.GetPremium()),
-			Num:	 int32(qty),
+			Num:     int32(qty),
 		}
 		db.Create(&c)
 	}
@@ -564,25 +564,25 @@ func OnDeckSetData(s *Session, body []byte) ([]byte, error) {
 
 	deck.LastModified = time.Now().UTC()
 	db.Save(&deck)
-	
-	res := hsproto.PegasusUtil_DBAction{}
-	action := hsproto.PegasusShared_DatabaseAction(int32(5)) // DB_A_SET_DECK
-	result := hsproto.PegasusShared_DatabaseResult(int32(1)) // DB_E_SUCCESS
+
+	res := util.DBAction{}
+	action := shared.DatabaseAction(int32(5)) // DB_A_SET_DECK
+	result := shared.DatabaseResult(int32(1)) // DB_E_SUCCESS
 	res.Action = &action
 	res.Result = &result
 	res.MetaData = proto.Int64(id)
-	
+
 	return EncodeUtilResponse(216, &res)
 }
 
 func OnSetCardBack(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_SetCardBack{}
+	req := util.SetCardBack{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("FIXME: SetCardBack stub = %s", req.String())
-	res := hsproto.PegasusUtil_SetCardBackResponse{}
+	res := util.SetCardBackResponse{}
 	cardback := req.GetCardBack()
 	res.CardBack = &cardback
 	res.Success = proto.Bool(false)
@@ -590,7 +590,7 @@ func OnSetCardBack(s *Session, body []byte) ([]byte, error) {
 }
 
 func OnRenameDeck(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_RenameDeck{}
+	req := util.RenameDeck{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
@@ -607,7 +607,7 @@ func OnRenameDeck(s *Session, body []byte) ([]byte, error) {
 	deck.Name = name
 	db.Save(&deck)
 
-	res := hsproto.PegasusUtil_DeckRenamed{
+	res := util.DeckRenamed{
 		Deck: proto.Int64(id),
 		Name: proto.String(name),
 	}
@@ -615,7 +615,7 @@ func OnRenameDeck(s *Session, body []byte) ([]byte, error) {
 }
 
 func OnDeleteDeck(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_DeleteDeck{}
+	req := util.DeleteDeck{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
@@ -631,25 +631,25 @@ func OnDeleteDeck(s *Session, body []byte) ([]byte, error) {
 	db.Where("deck_id = ?", id).Delete(DeckCard{})
 	db.Delete(&deck)
 
-	res := hsproto.PegasusUtil_DeckDeleted{
+	res := util.DeckDeleted{
 		Deck: proto.Int64(id),
 	}
 	return EncodeUtilResponse(218, &res)
 }
 
-func (s *Session) GetBoosterInfo(kind int32) *hsproto.PegasusShared_BoosterInfo {
+func (s *Session) GetBoosterInfo(kind int32) *shared.BoosterInfo {
 	var count int32
 	db.Model(Booster{}).
 		Where("booster_type = ? and opened = ? and account_id = ?", kind, false, s.Account.ID).
 		Count(&count)
-	res := &hsproto.PegasusShared_BoosterInfo{}
+	res := &shared.BoosterInfo{}
 	res.Count = proto.Int32(count)
 	res.Type = proto.Int32(kind)
 	return res
 }
 
-func PegasusDate(t time.Time) *hsproto.PegasusShared_Date {
-	return &hsproto.PegasusShared_Date{
+func PegasusDate(t time.Time) *shared.Date {
+	return &shared.Date{
 		Year:  proto.Int32(int32(t.Year())),
 		Month: proto.Int32(int32(t.Month())),
 		Day:   proto.Int32(int32(t.Day())),

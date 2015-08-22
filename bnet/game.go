@@ -1,7 +1,7 @@
 package bnet
 
 import (
-	"github.com/HearthSim/hs-proto/go"
+	"github.com/HearthSim/hs-proto-go/bnet/game_utilities_service"
 	"github.com/golang/protobuf/proto"
 	"log"
 )
@@ -14,7 +14,7 @@ type GameServer interface {
 // A GameSession handles communication with the client that pertains to the state
 // of the game itself, as opposed to the Bnet system.
 type GameSession interface {
-	HandleUtilRequest(req *hsproto.BnetProtocolGameUtilities_ClientRequest) ([]byte, error)
+	HandleUtilRequest(req *game_utilities_service.ClientRequest) ([]byte, error)
 }
 
 type GameUtilitiesServiceBinder struct{}
@@ -72,7 +72,7 @@ func (s *GameUtilitiesService) Invoke(method int, body []byte) (resp []byte, err
 }
 
 func (s *GameUtilitiesService) ProcessClientRequest(body []byte) ([]byte, error) {
-	req := hsproto.BnetProtocolGameUtilities_ClientRequest{}
+	req := game_utilities_service.ClientRequest{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err

@@ -1,7 +1,7 @@
 package pegasus
 
 import (
-	"github.com/HearthSim/hs-proto/go"
+	"github.com/HearthSim/hs-proto-go/pegasus/util"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -12,7 +12,7 @@ func (v *Version) Init(sess *Session) {
 }
 
 func OnAssetsVersion(s *Session, body []byte) ([]byte, error) {
-	res := hsproto.PegasusUtil_AssetsVersionResponse{}
+	res := util.AssetsVersionResponse{}
 	res.Version = proto.Int32(9166)
 	return EncodeUtilResponse(304, &res)
 }

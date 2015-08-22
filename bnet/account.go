@@ -1,7 +1,8 @@
 package bnet
 
 import (
-	"github.com/HearthSim/hs-proto/go"
+	"github.com/HearthSim/hs-proto-go/bnet/account_service"
+	"github.com/HearthSim/hs-proto-go/bnet/account_types"
 	"github.com/golang/protobuf/proto"
 	"log"
 )
@@ -142,22 +143,22 @@ func (s *AccountService) GetEBalanceRestrictions(body []byte) ([]byte, error) {
 }
 
 func (s *AccountService) GetAccountState(body []byte) ([]byte, error) {
-	req := hsproto.BnetProtocolAccount_GetAccountStateRequest{}
+	req := account_service.GetAccountStateRequest{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("req = %s", req.String())
 	opts := req.GetOptions()
-	res := hsproto.BnetProtocolAccount_GetAccountStateResponse{
-		State: &hsproto.BnetProtocolAccount_AccountState{},
+	res := account_service.GetAccountStateResponse{
+		State: &account_types.AccountState{},
 	}
 	if opts.GetAllFields() || opts.GetFieldAccountLevelInfo() {
-		levelInfo := &hsproto.BnetProtocolAccount_AccountLevelInfo{}
+		levelInfo := &account_types.AccountLevelInfo{}
 		levelInfo.PreferredRegion = proto.Uint32(1) // US
 		levelInfo.Country = proto.String("United States")
-		levelInfo.Licenses = make([]*hsproto.BnetProtocolAccount_AccountLicense, 1)
-		levelInfo.Licenses[0] = &hsproto.BnetProtocolAccount_AccountLicense{
+		levelInfo.Licenses = make([]*account_types.AccountLicense, 1)
+		levelInfo.Licenses[0] = &account_types.AccountLicense{
 			Id: proto.Uint32(1),
 		}
 		res.State.AccountLevelInfo = levelInfo
@@ -178,14 +179,14 @@ func (s *AccountService) GetGameTimeRemainingInfo(body []byte) ([]byte, error) {
 }
 
 func (s *AccountService) GetGameSessionInfo(body []byte) ([]byte, error) {
-	req := hsproto.BnetProtocolAccount_GetGameSessionInfoRequest{}
+	req := account_service.GetGameSessionInfoRequest{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("req = %s", req.String())
-	res := hsproto.BnetProtocolAccount_GetGameSessionInfoResponse{}
-	res.SessionInfo = &hsproto.BnetProtocolAccount_GameSessionInfo{}
+	res := account_service.GetGameSessionInfoResponse{}
+	res.SessionInfo = &account_types.GameSessionInfo{}
 	res.SessionInfo.StartTime = proto.Uint32(uint32(s.sess.startedPlaying.Unix()))
 	return proto.Marshal(&res)
 }

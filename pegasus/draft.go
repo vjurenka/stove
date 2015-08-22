@@ -1,9 +1,10 @@
 package pegasus
 
 import (
-	"github.com/HearthSim/hs-proto/go"
-	"github.com/golang/protobuf/proto"
 	"fmt"
+	"github.com/HearthSim/hs-proto-go/pegasus/shared"
+	"github.com/HearthSim/hs-proto-go/pegasus/util"
+	"github.com/golang/protobuf/proto"
 	"time"
 )
 
@@ -42,9 +43,9 @@ func MakeCardChoices(slot int32) (choices []DraftChoice) {
 	return choices
 }
 
-func ChoicesToCardDefs(choices []DraftChoice) (defs []*hsproto.PegasusShared_CardDef) {
+func ChoicesToCardDefs(choices []DraftChoice) (defs []*shared.CardDef) {
 	for _, choice := range choices {
-		defs = append(defs, &hsproto.PegasusShared_CardDef{
+		defs = append(defs, &shared.CardDef{
 			Asset:   proto.Int32(choice.CardID),
 			Premium: proto.Int32(int32(0)),
 		})
@@ -55,7 +56,7 @@ func ChoicesToCardDefs(choices []DraftChoice) (defs []*hsproto.PegasusShared_Car
 func OnDraftBegin(s *Session, body []byte) ([]byte, error) {
 	deck := Deck{
 		AccountID:    s.Account.ID,
-		DeckType:     int(hsproto.PegasusShared_DeckType_DRAFT_DECK),
+		DeckType:     int(shared.DeckType_DRAFT_DECK),
 		Name:         "Arena Deck",
 		CardBackID:   0, //TODO
 		LastModified: time.Now().UTC(),
@@ -72,7 +73,7 @@ func OnDraftBegin(s *Session, body []byte) ([]byte, error) {
 	db.Create(&draft)
 
 	choiceList := ChoicesToCardDefs(draft.Choices)
-	res := hsproto.PegasusUtil_DraftBeginning{
+	res := util.DraftBeginning{
 		DeckId:     proto.Int64(deck.ID),
 		ChoiceList: choiceList,
 	}
@@ -80,7 +81,7 @@ func OnDraftBegin(s *Session, body []byte) ([]byte, error) {
 }
 
 func OnDraftGetPicksAndContents(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_DraftGetPicksAndContents{}
+	req := util.DraftGetPicksAndContents{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
@@ -88,8 +89,8 @@ func OnDraftGetPicksAndContents(s *Session, body []byte) ([]byte, error) {
 
 	draft := Draft{}
 	if db.Where("not ended and account_id = ?", s.Account.ID).First(&draft).RecordNotFound() {
-		code := hsproto.PegasusUtil_DraftError_DE_NOT_IN_DRAFT
-		res := hsproto.PegasusUtil_DraftError{
+		code := util.DraftError_DE_NOT_IN_DRAFT
+		res := util.DraftError{
 			ErrorCode: &code,
 		}
 
@@ -102,13 +103,13 @@ func OnDraftGetPicksAndContents(s *Session, body []byte) ([]byte, error) {
 
 	deck := Deck{}
 	db.Where("id = ?", draft.DeckID).Preload("Cards").First(&deck)
-	heroDef := hsproto.PegasusShared_CardDef{
+	heroDef := shared.CardDef{
 		Asset:   proto.Int32(deck.HeroID),
 		Premium: proto.Int32(0),
 	}
-	cards := []*hsproto.PegasusShared_DeckCardData{}
+	cards := []*shared.DeckCardData{}
 	for i, card := range deck.Cards {
-		cards = append(cards, &hsproto.PegasusShared_DeckCardData{
+		cards = append(cards, &shared.DeckCardData{
 			Def:    MakeCardDef(card.CardID, 0),
 			Handle: proto.Int32(int32(i)),
 			Qty:    proto.Int32(0),
@@ -116,7 +117,7 @@ func OnDraftGetPicksAndContents(s *Session, body []byte) ([]byte, error) {
 		})
 	}
 
-	res := hsproto.PegasusUtil_DraftChoicesAndContents{
+	res := util.DraftChoicesAndContents{
 		DeckId:     proto.Int64(draft.DeckID),
 		Slot:       proto.Int32(draft.CurrentSlot),
 		Wins:       proto.Int32(draft.Wins),
@@ -130,7 +131,7 @@ func OnDraftGetPicksAndContents(s *Session, body []byte) ([]byte, error) {
 }
 
 func OnDraftMakePick(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_DraftMakePick{}
+	req := util.DraftMakePick{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
@@ -173,14 +174,14 @@ func OnDraftMakePick(s *Session, body []byte) ([]byte, error) {
 	draft.CurrentSlot += 1
 	db.Save(&draft)
 
-	choices := []*hsproto.PegasusShared_CardDef{}
+	choices := []*shared.CardDef{}
 	for _, choice := range draft.Choices {
-		choices = append(choices, &hsproto.PegasusShared_CardDef{
+		choices = append(choices, &shared.CardDef{
 			Asset:   proto.Int32(choice.CardID),
 			Premium: proto.Int32(int32(0)),
 		})
 	}
-	res := hsproto.PegasusUtil_DraftChosen{
+	res := util.DraftChosen{
 		Chosen:         MakeCardDef(pick.CardID, 0),
 		NextChoiceList: choices,
 	}
@@ -188,29 +189,29 @@ func OnDraftMakePick(s *Session, body []byte) ([]byte, error) {
 	return EncodeUtilResponse(249, &res)
 }
 
-func MakeChest() (chest hsproto.PegasusShared_RewardChest) {
+func MakeChest() (chest shared.RewardChest) {
 	// TODO take arguments to determine the contents
 	// There are up to 5 bags each which can hold a booster, card, dust or gold
 
-	chest.Bag1 = &hsproto.PegasusShared_RewardBag{
-		RewardBooster: &hsproto.PegasusShared_ProfileNoticeRewardBooster{
+	chest.Bag1 = &shared.RewardBag{
+		RewardBooster: &shared.ProfileNoticeRewardBooster{
 			BoosterType:  proto.Int32(1),
 			BoosterCount: proto.Int32(1),
 		},
 	}
-	chest.Bag2 = &hsproto.PegasusShared_RewardBag{
-		RewardCard: &hsproto.PegasusShared_ProfileNoticeRewardCard{
+	chest.Bag2 = &shared.RewardBag{
+		RewardCard: &shared.ProfileNoticeRewardCard{
 			Card:     MakeCardDef(2078, 1),
 			Quantity: proto.Int32(1),
 		},
 	}
-	chest.Bag3 = &hsproto.PegasusShared_RewardBag{
-		RewardDust: &hsproto.PegasusShared_ProfileNoticeRewardDust{
+	chest.Bag3 = &shared.RewardBag{
+		RewardDust: &shared.ProfileNoticeRewardDust{
 			Amount: proto.Int32(69),
 		},
 	}
-	chest.Bag4 = &hsproto.PegasusShared_RewardBag{
-		RewardGold: &hsproto.PegasusShared_ProfileNoticeRewardGold{
+	chest.Bag4 = &shared.RewardBag{
+		RewardGold: &shared.ProfileNoticeRewardGold{
 			Amount: proto.Int32(42),
 		},
 	}
@@ -218,7 +219,7 @@ func MakeChest() (chest hsproto.PegasusShared_RewardChest) {
 }
 
 func OnDraftRetire(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_DraftRetire{}
+	req := util.DraftRetire{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
@@ -233,7 +234,7 @@ func OnDraftRetire(s *Session, body []byte) ([]byte, error) {
 	db.Save(&draft)
 
 	chest := MakeChest()
-	res := hsproto.PegasusUtil_DraftRetired{
+	res := util.DraftRetired{
 		DeckId: req.DeckId,
 		Chest:  &chest,
 	}
@@ -241,13 +242,13 @@ func OnDraftRetire(s *Session, body []byte) ([]byte, error) {
 }
 
 func OnDraftAckRewards(s *Session, body []byte) ([]byte, error) {
-	req := hsproto.PegasusUtil_DraftAckRewards{}
+	req := util.DraftAckRewards{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
 	}
 
-	res := hsproto.PegasusUtil_DraftRewardsAcked{
+	res := util.DraftRewardsAcked{
 		DeckId: req.DeckId,
 	}
 	return EncodeUtilResponse(288, &res)

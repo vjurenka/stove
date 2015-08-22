@@ -2,7 +2,7 @@ package bnet
 
 import (
 	"fmt"
-	"github.com/HearthSim/hs-proto/go"
+	"github.com/HearthSim/hs-proto-go/bnet/rpc"
 	"github.com/golang/protobuf/proto"
 	"io"
 	"log"
@@ -125,7 +125,7 @@ func (s *Server) handleClient(c net.Conn) {
 		if err != nil {
 			log.Panicf("error: Server.handleClient: header read: %v", err)
 		}
-		header := hsproto.BnetProtocol_Header{}
+		header := rpc.Header{}
 		err = proto.Unmarshal(buf[:headerLen], &header)
 		if err != nil {
 			log.Panicf("error: Server.handleClient: header decode: %v", err)

@@ -2,7 +2,7 @@ package pegasus
 
 import (
 	"errors"
-	"github.com/HearthSim/hs-proto/go"
+	"github.com/HearthSim/hs-proto-go/bnet/game_utilities_service"
 	"github.com/HearthSim/stove/bnet"
 	"log"
 )
@@ -39,7 +39,7 @@ type UtilHandler func(sess *Session, req []byte) (res []byte, err error)
 
 // HandleUtilRequest processes an encoded client request from GameUtilities,
 // possibly returning an encoded response.
-func (s *Session) HandleUtilRequest(req *hsproto.BnetProtocolGameUtilities_ClientRequest) ([]byte, error) {
+func (s *Session) HandleUtilRequest(req *game_utilities_service.ClientRequest) ([]byte, error) {
 	packetId := -1
 	// System 1 involves payment.  System 0 is everything else.
 	systemId := -1

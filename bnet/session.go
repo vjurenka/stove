@@ -1,7 +1,7 @@
 package bnet
 
 import (
-	"github.com/HearthSim/hs-proto/go"
+	"github.com/HearthSim/hs-proto-go/bnet/rpc"
 	"github.com/golang/protobuf/proto"
 	"log"
 	"net"
@@ -109,7 +109,7 @@ func (s *Session) ImportedService(name string) Service {
 	return nil
 }
 
-func (s *Session) QueuePacket(header *hsproto.BnetProtocol_Header, buf []byte) error {
+func (s *Session) QueuePacket(header *rpc.Header, buf []byte) error {
 	packet, err := MakePacket(header, buf)
 	if err != nil {
 		return err
@@ -130,14 +130,14 @@ func (s *Session) pumpPacketQueue() {
 	}
 }
 
-func (s *Session) MakeRequestHeader(service Service, methodId, size int) *hsproto.BnetProtocol_Header {
+func (s *Session) MakeRequestHeader(service Service, methodId, size int) *rpc.Header {
 	serviceId, ok := s.importMap[Hash(service.Name())]
 	if !ok {
 		log.Panicf("Client didn't export service %s", service.Name())
 	}
 	token := s.lastToken
 	s.lastToken++
-	return &hsproto.BnetProtocol_Header{
+	return &rpc.Header{
 		ServiceId: proto.Uint32(uint32(serviceId)),
 		MethodId:  proto.Uint32(uint32(methodId)),
 		Token:     proto.Uint32(token),
@@ -145,7 +145,7 @@ func (s *Session) MakeRequestHeader(service Service, methodId, size int) *hsprot
 	}
 }
 
-func (s *Session) HandlePacket(header *hsproto.BnetProtocol_Header, body []byte) {
+func (s *Session) HandlePacket(header *rpc.Header, body []byte) {
 	serviceId := int(header.GetServiceId())
 	methodId := int(header.GetMethodId())
 
@@ -154,12 +154,12 @@ func (s *Session) HandlePacket(header *hsproto.BnetProtocol_Header, body []byte)
 	} else {
 		resp := s.HandleRequest(serviceId, methodId, body)
 		if resp != nil {
-			respHead := hsproto.BnetProtocol_Header{
+			respHead := &rpc.Header{
 				ServiceId: proto.Uint32(254),
 				Token:     header.Token,
 				Size:      proto.Uint32(uint32(len(resp))),
 			}
-			err := s.QueuePacket(&respHead, resp)
+			err := s.QueuePacket(respHead, resp)
 			if err != nil {
 				log.Panicf("error: Session.HandlePacket: respond: %v", err)
 			}

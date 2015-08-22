@@ -1,7 +1,7 @@
 package bnet
 
 import (
-	"github.com/HearthSim/hs-proto/go"
+	"github.com/HearthSim/hs-proto-go/bnet/channel_invitation_service"
 	"github.com/golang/protobuf/proto"
 	"log"
 )
@@ -71,13 +71,13 @@ func (s *ChannelInvitationService) Invoke(method int, body []byte) (resp []byte,
 }
 
 func (s *ChannelInvitationService) Subscribe(body []byte) ([]byte, error) {
-	req := hsproto.BnetProtocolChannelInvitation_SubscribeRequest{}
+	req := channel_invitation_service.SubscribeRequest{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("req = %s", req.String())
-	res := hsproto.BnetProtocolChannelInvitation_SubscribeResponse{}
+	res := channel_invitation_service.SubscribeResponse{}
 	resBuf, err := proto.Marshal(&res)
 	if err != nil {
 		return nil, err

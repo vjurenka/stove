@@ -1,7 +1,8 @@
 package pegasus
 
 import (
-	"github.com/HearthSim/hs-proto/go"
+	"github.com/HearthSim/hs-proto-go/bnet/attribute"
+	"github.com/HearthSim/hs-proto-go/bnet/game_utilities_service"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -12,17 +13,17 @@ func EncodeUtilResponse(packetId int32, msg proto.Message) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	res := hsproto.BnetProtocolGameUtilities_ClientResponse{}
-	res.Attribute = make([]*hsproto.BnetProtocolAttribute_Attribute, 2)
-	res.Attribute[0] = &hsproto.BnetProtocolAttribute_Attribute{
+	res := game_utilities_service.ClientResponse{}
+	res.Attribute = make([]*attribute.Attribute, 2)
+	res.Attribute[0] = &attribute.Attribute{
 		Name: proto.String("t"),
-		Value: &hsproto.BnetProtocolAttribute_Variant{
+		Value: &attribute.Variant{
 			IntValue: proto.Int64(int64(packetId)),
 		},
 	}
-	res.Attribute[1] = &hsproto.BnetProtocolAttribute_Attribute{
+	res.Attribute[1] = &attribute.Attribute{
 		Name: proto.String("p"),
-		Value: &hsproto.BnetProtocolAttribute_Variant{
+		Value: &attribute.Variant{
 			BlobValue: body,
 		},
 	}

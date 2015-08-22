@@ -1,7 +1,8 @@
 package bnet
 
 import (
-	"github.com/HearthSim/hs-proto/go"
+	"github.com/HearthSim/hs-proto-go/bnet/connection_service"
+	"github.com/HearthSim/hs-proto-go/bnet/rpc"
 	"github.com/golang/protobuf/proto"
 	"log"
 	"time"
@@ -60,7 +61,7 @@ func (s *ConnectionService) Invoke(method int, body []byte) (resp []byte, err er
 }
 
 func (s *ConnectionService) Connect(body []byte) ([]byte, error) {
-	req := hsproto.BnetProtocolConnection_ConnectRequest{}
+	req := connection_service.ConnectRequest{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
@@ -89,17 +90,17 @@ func (s *ConnectionService) Connect(body []byte) ([]byte, error) {
 	now := time.Now()
 	nowNano := uint64(now.UnixNano())
 	nowSec := uint32(now.Unix())
-	resp := hsproto.BnetProtocolConnection_ConnectResponse{
-		ServerId: &hsproto.BnetProtocol_ProcessId{
+	resp := connection_service.ConnectResponse{
+		ServerId: &rpc.ProcessId{
 			Label: proto.Uint32(3868510373),
 			Epoch: proto.Uint32(nowSec),
 		},
-		ClientId: &hsproto.BnetProtocol_ProcessId{
+		ClientId: &rpc.ProcessId{
 			Label: proto.Uint32(1255760),
 			Epoch: proto.Uint32(nowSec),
 		},
 		BindResult: proto.Uint32(0),
-		BindResponse: &hsproto.BnetProtocolConnection_BindResponse{
+		BindResponse: &connection_service.BindResponse{
 			ImportedServiceId: exportedServiceIds,
 		},
 		ServerTime: proto.Uint64(nowNano),

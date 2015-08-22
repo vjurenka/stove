@@ -1,7 +1,7 @@
 package bnet
 
 import (
-	"github.com/HearthSim/hs-proto/go"
+	"github.com/HearthSim/hs-proto-go/bnet/friends_service"
 	"github.com/golang/protobuf/proto"
 	"log"
 )
@@ -74,13 +74,13 @@ func (s *FriendsService) Invoke(method int, body []byte) (resp []byte, err error
 }
 
 func (s *FriendsService) SubscribeToFriends(body []byte) ([]byte, error) {
-	req := hsproto.BnetProtocolFriends_SubscribeToFriendsRequest{}
+	req := friends_service.SubscribeToFriendsRequest{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("req = %s", req.String())
-	res := hsproto.BnetProtocolFriends_SubscribeToFriendsResponse{}
+	res := friends_service.SubscribeToFriendsResponse{}
 	res.MaxFriends = proto.Uint32(200)
 	res.MaxReceivedInvitations = proto.Uint32(1000)
 	res.MaxSentInvitations = proto.Uint32(20)

@@ -1,7 +1,8 @@
 package bnet
 
 import (
-	"github.com/HearthSim/hs-proto/go"
+	"github.com/HearthSim/hs-proto-go/bnet/content_handle"
+	"github.com/HearthSim/hs-proto-go/bnet/resource_service"
 	"github.com/golang/protobuf/proto"
 	"log"
 )
@@ -42,12 +43,12 @@ func (s *ResourcesService) Invoke(method int, body []byte) (resp []byte, err err
 }
 
 func (s *ResourcesService) GetContentHandle(body []byte) ([]byte, error) {
-	req := hsproto.BnetProtocolResources_ContentHandleRequest{}
+	req := resource_service.ContentHandleRequest{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
 		return nil, err
 	}
-	res := hsproto.BnetProtocol_ContentHandle{}
+	res := content_handle.ContentHandle{}
 	res.Region = proto.Uint32(0x7573)
 	res.Usage = proto.Uint32(0x70667479) // 'pfty'
 	res.Hash = make([]byte, 0x20)
