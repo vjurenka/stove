@@ -159,16 +159,16 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		return EncodeUtilResponse(202, &res)
 	case "COLLECTION":
 		res := util.Collection{}
-		dbfCards := []DbfCard{}
-		db.Where("is_collectible").Find(&dbfCards)
-		for _, card := range dbfCards {
+		collectionCards := []CollectionCard{}
+		db.Where("account_id = ?", s.Account.ID).Find(&collectionCards)
+		for _, card := range collectionCards {
 			stack1 := &shared.CardStack{}
 			stack1.LatestInsertDate = PegasusDate(time.Now().UTC())
 			stack1.NumSeen = proto.Int32(2)
-			stack1.Count = proto.Int32(2)
+			stack1.Count = proto.Int32(card.Num)
 			carddef := &shared.CardDef{}
-			carddef.Asset = proto.Int32(card.ID)
-			carddef.Premium = proto.Int32(0)
+			carddef.Asset = proto.Int32(card.CardID)
+			carddef.Premium = proto.Int32(card.Premium)
 			stack1.CardDef = carddef
 			res.Stacks = append(res.Stacks, stack1)
 		}
@@ -442,7 +442,18 @@ func OnOpenBooster(s *Session, body []byte) ([]byte, error) {
 			CardDef:    MakeCardDef(card.CardID, card.Premium),
 			InsertDate: PegasusDate(time.Now().UTC()),
 		}
+		cards := CollectionCard{}
+		if !db.Where("account_id = ? AND card_id = ? AND premium = ?", s.Account.ID, card.CardID, card.Premium).First(&cards).RecordNotFound() {
+			db.Model(&cards).Update("num", cards.Num + 1)
+		} else {
+			cards.AccountID = s.Account.ID
+			cards.CardID = card.CardID
+			cards.Premium = card.Premium
+			cards.Num = 1
+			db.Save(&cards)
+		}
 		res.List = append(res.List, boosterCard)
+
 	}
 
 	return EncodeUtilResponse(226, &res)

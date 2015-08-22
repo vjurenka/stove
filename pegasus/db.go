@@ -174,3 +174,11 @@ type Product struct {
 	ProductData int32
 	Quantity    int32
 }
+
+type CollectionCard struct {
+	ID        int64
+	AccountID int64
+	CardID    int32
+	Premium   int32
+	Num       int32
+}
