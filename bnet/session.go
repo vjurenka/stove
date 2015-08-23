@@ -17,6 +17,7 @@ const (
 	StateLoggingIn
 	StateAuthenticationFailed
 	StateReady
+	StateCount
 )
 
 type Session struct {
@@ -51,8 +52,9 @@ type Session struct {
 	packetQueue chan []byte
 
 	// stateMutex protects Session.State
-	stateMutex  sync.Mutex
-	stateChange *sync.Cond
+	stateMutex     sync.Mutex
+	stateChange    *sync.Cond
+	stateListeners map[int]int32
 	// state is the current state of the session; it may be any of the State
 	// consts defined above.
 	state int
@@ -68,6 +70,10 @@ func NewSession(s *Server, c net.Conn) *Session {
 	sess.responses = map[uint32]chan []byte{}
 	sess.packetQueue = make(chan []byte, 1)
 	sess.stateChange = sync.NewCond(&sess.stateMutex)
+	sess.stateListeners = map[int]int32{}
+	for i := 0; i < StateCount; i++ {
+		sess.stateListeners[i] = 0
+	}
 	sess.state = StateConnecting
 	// The connection service export is implicity bound at index 0:
 	sess.BindExport(0, Hash("bnet.protocol.connection.ConnectionService"))
@@ -153,6 +159,7 @@ func (s *Session) DisconnectOnPanic() {
 		log.Printf("session error: %v\n=== STACK TRACE ===\n%s",
 			err, string(debug.Stack()))
 		log.Println("closing session")
+		s.Transition(StateDisconnected)
 		s.conn.Close()
 	}
 }
@@ -249,21 +256,24 @@ func (s *Session) HandleRequest(serviceId, methodId int, body []byte) (resp []by
 // any listeners of that state update.
 func (s *Session) Transition(state int) {
 	s.stateMutex.Lock()
-	currState := s.state
 	s.state = state
 	s.stateMutex.Unlock()
-	if state != currState {
-		s.stateChange.Broadcast()
+	s.stateChange.Broadcast()
+	// If every broadcast hasn't triggered yet, we should wait:
+	for s.stateListeners[state] != 0 {
+		time.Sleep(time.Millisecond)
 	}
 }
 
 // WaitForTransition blocks until the session state matches the value provided.
 func (s *Session) WaitForTransition(state int) {
 	s.stateMutex.Lock()
-	defer s.stateMutex.Unlock()
+	s.stateListeners[state] += 1
 	for s.state != state {
 		s.stateChange.Wait()
 	}
+	s.stateListeners[state] -= 1
+	s.stateMutex.Unlock()
 }
 
 // ChanForTransition makes a channel that waits for the specified state.
