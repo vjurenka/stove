@@ -19,17 +19,17 @@ func openDB() gorm.DB {
 }
 
 type Achieve struct {
-	ID               int32
-	AccountID        int64
-	AchieveID        int32
+	ID        int32
+	AccountID int64
+	AchieveID int32
 
-	Progress         int32
-	AckProgress      int32
-	CompletionCount  int32
-	Active           bool
+	Progress        int32
+	AckProgress     int32
+	CompletionCount int32
+	Active          bool
 	// started_count doesn't seem to be used
-	DateGiven        time.Time
-	DateCompleted    time.Time
+	DateGiven     time.Time
+	DateCompleted time.Time
 	// do_not_ack is also not used
 }
 
@@ -49,11 +49,11 @@ type BoosterCard struct {
 }
 
 type FavoriteHero struct {
-	ID           int64
-	AccountID    int64
-	ClassID      int32
-	CardID       int32
-	Premium      int32
+	ID        int64
+	AccountID int64
+	ClassID   int32
+	CardID    int32
+	Premium   int32
 }
 
 type Deck struct {
