@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"github.com/HearthSim/stove/bnet"
 	"github.com/HearthSim/stove/pegasus"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/rakyll/gom/http"
+	"net/http"
 	"strings"
 )
 
@@ -29,6 +30,12 @@ func main() {
 		pegasus.Migrate()
 		return
 	}
+
+	go func() {
+		httpAddr := "localhost:6060"
+		fmt.Printf("Debug http server listening on %s ...\n", httpAddr)
+		fmt.Println(http.ListenAndServe(httpAddr, nil))
+	}()
 
 	serv := bnet.NewServer()
 	serv.RegisterGameServer("WTCG", pegasus.NewServer(serv))
