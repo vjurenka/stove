@@ -133,7 +133,8 @@ func (s *AuthServerService) CompleteLogin() error {
 		res.ConnectedRegion = proto.Uint32(0x5553) // 'US'
 
 		if s.program == "WTCG" {
-			s.sess.game = s.sess.server.ConnectGameServer(s.sess, s.program)
+			s.sess.server.ConnectGameServer(s.sess, s.program)
+			go s.sess.HandleNotifications()
 		}
 		s.sess.startedPlaying = time.Now()
 	}

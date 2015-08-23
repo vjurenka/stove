@@ -8,11 +8,11 @@ import (
 type Version struct{}
 
 func (v *Version) Init(sess *Session) {
-	sess.RegisterUtilHandler(0, 303, OnAssetsVersion)
+	sess.RegisterPacket(util.GetAssetsVersion_ID, OnAssetsVersion)
 }
 
-func OnAssetsVersion(s *Session, body []byte) ([]byte, error) {
+func OnAssetsVersion(s *Session, body []byte) *Packet {
 	res := util.AssetsVersionResponse{}
-	res.Version = proto.Int32(9166)
-	return EncodeUtilResponse(304, &res)
+	res.Version = proto.Int32(9786)
+	return EncodePacket(util.AssetsVersionResponse_ID, &res)
 }

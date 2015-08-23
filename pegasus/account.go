@@ -1,7 +1,6 @@
 package pegasus
 
 import (
-	"fmt"
 	"github.com/HearthSim/hs-proto-go/pegasus/shared"
 	"github.com/HearthSim/hs-proto-go/pegasus/util"
 	"github.com/golang/protobuf/proto"
@@ -23,69 +22,69 @@ func (v *Account) Init(sess *Session) {
 	// TODO: fetch the account using the bnet session
 	db.Find(&sess.Account)
 
-	sess.RegisterUtilHandler(0, 201, OnGetAccountInfo)
-	sess.RegisterUtilHandler(0, 205, OnUpdateLogin)
-	sess.RegisterUtilHandler(0, 209, OnCreateDeck)
-	sess.RegisterUtilHandler(0, 210, OnDeleteDeck)
-	sess.RegisterUtilHandler(0, 211, OnRenameDeck)
-	sess.RegisterUtilHandler(0, 214, OnGetDeck)
-	sess.RegisterUtilHandler(0, 222, OnDeckSetData)
-	sess.RegisterUtilHandler(0, 223, OnAckCardSeen)
-	sess.RegisterUtilHandler(0, 225, OnOpenBooster)
-	sess.RegisterUtilHandler(0, 239, OnSetOptions)
-	sess.RegisterUtilHandler(0, 240, OnGetOptions)
-	sess.RegisterUtilHandler(0, 243, OnAckAchieveProgress)
-	sess.RegisterUtilHandler(0, 253, OnGetAchieves)
-	sess.RegisterUtilHandler(0, 267, OnCheckAccountLicenses)
-	sess.RegisterUtilHandler(1, 276, OnCheckGameLicenses)
-	sess.RegisterUtilHandler(0, 281, OnCancelQuest)
-	sess.RegisterUtilHandler(0, 284, OnValidateAchieve)
-	sess.RegisterUtilHandler(0, 291, OnSetCardBack)
-	sess.RegisterUtilHandler(0, 305, OnGetAdventureProgress)
-	sess.RegisterUtilHandler(0, 319, OnSetFavoriteHero)
+	sess.RegisterPacket(util.GetAccountInfo_ID, OnGetAccountInfo)
+	sess.RegisterPacket(util.UpdateLogin_ID, OnUpdateLogin)
+	sess.RegisterPacket(util.CreateDeck_ID, OnCreateDeck)
+	sess.RegisterPacket(util.DeleteDeck_ID, OnDeleteDeck)
+	sess.RegisterPacket(util.RenameDeck_ID, OnRenameDeck)
+	sess.RegisterPacket(util.GetDeck_ID, OnGetDeck)
+	sess.RegisterPacket(util.DeckSetData_ID, OnDeckSetData)
+	sess.RegisterPacket(util.AckCardSeen_ID, OnAckCardSeen)
+	sess.RegisterPacket(util.OpenBooster_ID, OnOpenBooster)
+	sess.RegisterPacket(util.SetOptions_ID, OnSetOptions)
+	sess.RegisterPacket(util.GetOptions_ID, OnGetOptions)
+	sess.RegisterPacket(util.AckAchieveProgress_ID, OnAckAchieveProgress)
+	sess.RegisterPacket(util.GetAchieves_ID, OnGetAchieves)
+	sess.RegisterPacket(util.CheckAccountLicenses_ID, OnCheckAccountLicenses)
+	sess.RegisterPacket(util.CheckGameLicenses_ID, OnCheckGameLicenses)
+	sess.RegisterPacket(util.CancelQuest_ID, OnCancelQuest)
+	sess.RegisterPacket(util.ValidateAchieve_ID, OnValidateAchieve)
+	sess.RegisterPacket(util.SetCardBack_ID, OnSetCardBack)
+	sess.RegisterPacket(util.GetAdventureProgress_ID, OnGetAdventureProgress)
+	sess.RegisterPacket(util.SetFavoriteHero_ID, OnSetFavoriteHero)
 }
 
-func OnAckCardSeen(s *Session, body []byte) ([]byte, error) {
+func OnAckCardSeen(s *Session, body []byte) *Packet {
 	req := util.AckCardSeen{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	log.Printf("FIXME: AckCardSeen = %s", req.String())
-	return nil, nil
+	return nil
 }
 
-func OnCheckAccountLicenses(s *Session, body []byte) ([]byte, error) {
+func OnCheckAccountLicenses(s *Session, body []byte) *Packet {
 	return OnCheckLicenses(true)
 }
 
-func OnCheckGameLicenses(s *Session, body []byte) ([]byte, error) {
+func OnCheckGameLicenses(s *Session, body []byte) *Packet {
 	return OnCheckLicenses(false)
 }
 
-func OnCheckLicenses(accountLevel bool) ([]byte, error) {
+func OnCheckLicenses(accountLevel bool) *Packet {
 	res := util.CheckLicensesResponse{}
 	res.AccountLevel = proto.Bool(accountLevel)
 	res.Success = proto.Bool(true)
-	return EncodeUtilResponse(277, &res)
+	return EncodePacket(util.CheckLicensesResponse_ID, &res)
 }
 
-func OnUpdateLogin(s *Session, body []byte) ([]byte, error) {
+func OnUpdateLogin(s *Session, body []byte) *Packet {
 	req := util.UpdateLogin{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	log.Printf("req = %s", req.String())
 	res := util.UpdateLoginComplete{}
-	return EncodeUtilResponse(307, &res)
+	return EncodePacket(util.UpdateLoginComplete_ID, &res)
 }
 
-func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
+func OnGetAccountInfo(s *Session, body []byte) *Packet {
 	req := util.GetAccountInfo{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	log.Printf("req = %s", req.String())
 	switch req.Request.String() {
@@ -93,7 +92,7 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		res := util.ProfileProgress{}
 		res.Progress = proto.Int64(6)  // ILLIDAN_COMPLETE
 		res.BestForge = proto.Int32(0) // Arena wins
-		return EncodeUtilResponse(233, &res)
+		return EncodePacket(util.ProfileProgress_ID, &res)
 	case "BOOSTERS":
 		res := util.BoosterList{}
 		classicPacks := s.GetBoosterInfo(1)
@@ -108,11 +107,11 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		if *tgtPacks.Count > 0 {
 			res.List = append(res.List, tgtPacks)
 		}
-		return EncodeUtilResponse(224, &res)
+		return EncodePacket(util.BoosterList_ID, &res)
 	case "FEATURES":
 		res := util.GuardianVars{}
 		res.ShowUserUI = proto.Int32(1)
-		return EncodeUtilResponse(264, &res)
+		return EncodePacket(util.GuardianVars_ID, &res)
 	case "MEDAL_INFO":
 		res := util.MedalInfo{}
 		res.SeasonWins = proto.Int32(0)
@@ -122,7 +121,7 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		res.LevelStart = proto.Int32(1)
 		res.LevelEnd = proto.Int32(3)
 		res.CanLose = proto.Bool(false)
-		return EncodeUtilResponse(232, &res)
+		return EncodePacket(util.MedalInfo_ID, &res)
 	case "MEDAL_HISTORY":
 		res := util.MedalHistory{}
 		for i := int32(1); i <= 3; i++ {
@@ -136,10 +135,10 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 			info.LegendRank = proto.Int32(1)
 			res.Medals = append(res.Medals, info)
 		}
-		return EncodeUtilResponse(234, &res)
+		return EncodePacket(util.MedalHistory_ID, &res)
 	case "NOTICES":
 		res := util.ProfileNotices{}
-		return EncodeUtilResponse(212, &res)
+		return EncodePacket(util.ProfileNotices_ID, &res)
 	case "DECK_LIST":
 		res := util.DeckList{}
 		basicDecks := []Deck{}
@@ -156,7 +155,7 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 			info := MakeDeckInfo(&deck)
 			res.Decks = append(res.Decks, info)
 		}
-		return EncodeUtilResponse(202, &res)
+		return EncodePacket(util.DeckList_ID, &res)
 	case "COLLECTION":
 		res := util.Collection{}
 		collectionCards := []CollectionCard{}
@@ -172,26 +171,26 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 			stack1.CardDef = carddef
 			res.Stacks = append(res.Stacks, stack1)
 		}
-		return EncodeUtilResponse(207, &res)
+		return EncodePacket(util.Collection_ID, &res)
 	case "DECK_LIMIT":
 		res := util.ProfileDeckLimit{}
 		res.DeckLimit = proto.Int32(9)
-		return EncodeUtilResponse(231, &res)
+		return EncodePacket(util.ProfileDeckLimit_ID, &res)
 	case "CARD_VALUES":
 		res := util.CardValues{}
 		res.CardNerfIndex = proto.Int32(0)
-		return EncodeUtilResponse(260, &res)
+		return EncodePacket(util.CardValues_ID, &res)
 	case "ARCANE_DUST_BALANCE":
 		res := util.ArcaneDustBalance{}
 		res.Balance = proto.Int64(10000)
-		return EncodeUtilResponse(262, &res)
+		return EncodePacket(util.ArcaneDustBalance_ID, &res)
 	case "GOLD_BALANCE":
 		res := util.GoldBalance{}
 		res.Cap = proto.Int64(999999)
 		res.CapWarning = proto.Int64(2000)
 		res.CappedBalance = proto.Int64(1234)
 		res.BonusBalance = proto.Int64(0)
-		return EncodeUtilResponse(278, &res)
+		return EncodePacket(util.GoldBalance_ID, &res)
 	case "HERO_XP":
 		res := util.HeroXP{}
 		for i := 2; i <= 10; i++ {
@@ -204,10 +203,10 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 			info.MaxXp = proto.Int64(int64(maxXp))
 			res.XpInfos = append(res.XpInfos, info)
 		}
-		return EncodeUtilResponse(283, &res)
+		return EncodePacket(util.HeroXP_ID, &res)
 	case "NOT_SO_MASSIVE_LOGIN":
 		res := util.NotSoMassiveLoginReply{}
-		return EncodeUtilResponse(300, &res)
+		return EncodePacket(util.NotSoMassiveLoginReply_ID, &res)
 	case "REWARD_PROGRESS":
 		res := util.RewardProgress{}
 		nextMonth := time.Date(2015, 8, 1, 7, 0, 0, 0, time.UTC)
@@ -220,18 +219,18 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		res.MaxHeroLevel = proto.Int32(60)
 		res.NextQuestCancel = PegasusDate(time.Now().UTC())
 		res.EventTimingMod = proto.Float32(0.291667)
-		return EncodeUtilResponse(271, &res)
+		return EncodePacket(util.RewardProgress_ID, &res)
 	case "PVP_QUEUE":
 		res := util.PlayQueue{}
 		queue := shared.PlayQueueInfo{}
 		gametype := shared.BnetGameType_BGT_NORMAL
 		queue.GameType = &gametype
 		res.Queue = &queue
-		return EncodeUtilResponse(286, &res)
+		return EncodePacket(util.PlayQueue_ID, &res)
 
 	case "PLAYER_RECORD":
 		res := util.PlayerRecords{}
-		return EncodeUtilResponse(270, &res)
+		return EncodePacket(util.PlayerRecords_ID, &res)
 	case "CARD_BACKS":
 		res := util.CardBacks{}
 		dbfCardBacks := []DbfCardBack{}
@@ -240,7 +239,7 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 		for _, cardBack := range dbfCardBacks {
 			res.CardBacks = append(res.CardBacks, cardBack.ID)
 		}
-		return EncodeUtilResponse(236, &res)
+		return EncodePacket(util.CardBacks_ID, &res)
 	case "FAVORITE_HEROES":
 		res := util.FavoriteHeroesResponse{}
 		favoriteHeros := []FavoriteHero{}
@@ -256,39 +255,38 @@ func OnGetAccountInfo(s *Session, body []byte) ([]byte, error) {
 			fav.Hero = carddef
 			res.FavoriteHeroes = append(res.FavoriteHeroes, fav)
 		}
-		return EncodeUtilResponse(318, &res)
+		return EncodePacket(util.FavoriteHeroesResponse_ID, &res)
 	case "ACCOUNT_LICENSES":
 		res := util.AccountLicensesInfoResponse{}
-		return EncodeUtilResponse(325, &res)
+		return EncodePacket(util.AccountLicensesInfoResponse_ID, &res)
 	case "BOOSTER_TALLY":
 		res := util.BoosterTallyList{}
-		return EncodeUtilResponse(313, &res)
+		return EncodePacket(util.BoosterTallyList_ID, &res)
 	default:
-
-		return nil, nyi
+		panic(nyi)
 	}
 }
 
-func OnGetAdventureProgress(s *Session, body []byte) ([]byte, error) {
+func OnGetAdventureProgress(s *Session, body []byte) *Packet {
 	res := util.AdventureProgressResponse{}
-	return EncodeUtilResponse(306, &res)
+	return EncodePacket(util.AdventureProgressResponse_ID, &res)
 }
 
-func OnSetOptions(s *Session, body []byte) ([]byte, error) {
+func OnSetOptions(s *Session, body []byte) *Packet {
 	req := util.SetOptions{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	log.Printf("req = %s", req.String())
-	return nil, nil
+	return nil
 }
 
-func OnGetOptions(s *Session, body []byte) ([]byte, error) {
+func OnGetOptions(s *Session, body []byte) *Packet {
 	req := util.GetOptions{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	log.Printf("req = %s", req.String())
 	res := util.ClientOptions{}
@@ -304,14 +302,14 @@ func OnGetOptions(s *Session, body []byte) ([]byte, error) {
 		Index:   proto.Int32(18),
 		AsInt64: proto.Int64(0xB765A8C),
 	})
-	return EncodeUtilResponse(241, &res)
+	return EncodePacket(util.ClientOptions_ID, &res)
 }
 
-func OnGetAchieves(s *Session, body []byte) ([]byte, error) {
+func OnGetAchieves(s *Session, body []byte) *Packet {
 	req := util.GetAchieves{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	res := util.Achieves{}
 	dbfAchieves := []DbfAchieve{}
@@ -330,14 +328,14 @@ func OnGetAchieves(s *Session, body []byte) ([]byte, error) {
 			DateCompleted:   PegasusDate(achieveProgress.DateCompleted),
 		})
 	}
-	return EncodeUtilResponse(252, &res)
+	return EncodePacket(util.Achieves_ID, &res)
 }
 
-func OnSetFavoriteHero(s *Session, body []byte) ([]byte, error) {
+func OnSetFavoriteHero(s *Session, body []byte) *Packet {
 	req := util.SetFavoriteHero{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	// TODO: optionally deny changes and respond accordingly
@@ -352,14 +350,14 @@ func OnSetFavoriteHero(s *Session, body []byte) ([]byte, error) {
 		Success:      proto.Bool(true),
 		FavoriteHero: req.FavoriteHero,
 	}
-	return EncodeUtilResponse(320, &res)
+	return EncodePacket(util.SetFavoriteHeroResponse_ID, &res)
 }
 
-func OnAckAchieveProgress(s *Session, body []byte) ([]byte, error) {
+func OnAckAchieveProgress(s *Session, body []byte) *Packet {
 	req := util.AckAchieveProgress{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	achieve := Achieve{}
@@ -367,26 +365,26 @@ func OnAckAchieveProgress(s *Session, body []byte) ([]byte, error) {
 	achieve.AckProgress = req.GetAckProgress()
 	db.Save(&achieve)
 
-	return nil, nil
+	return nil
 }
 
-func OnValidateAchieve(s *Session, body []byte) ([]byte, error) {
+func OnValidateAchieve(s *Session, body []byte) *Packet {
 	req := util.ValidateAchieve{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	log.Printf("req = %s", req.String())
 	res := util.ValidateAchieveResponse{}
 	res.Achieve = proto.Int32(req.GetAchieve())
-	return EncodeUtilResponse(285, &res)
+	return EncodePacket(util.ValidateAchieveResponse_ID, &res)
 }
 
-func OnCancelQuest(s *Session, body []byte) ([]byte, error) {
+func OnCancelQuest(s *Session, body []byte) *Packet {
 	req := util.CancelQuest{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	// TODO: check if the quest is a daily that can be canceled and if so cancel it.
@@ -400,7 +398,7 @@ func OnCancelQuest(s *Session, body []byte) ([]byte, error) {
 		NextQuestCancel: PegasusDate(time.Now().UTC()),
 	}
 
-	return EncodeUtilResponse(282, &res)
+	return EncodePacket(util.CancelQuestResponse_ID, &res)
 }
 
 func MakeDeckInfo(deck *Deck) *shared.DeckInfo {
@@ -426,11 +424,11 @@ func MakeCardDef(id, premium int32) *shared.CardDef {
 	return res
 }
 
-func OnOpenBooster(s *Session, body []byte) ([]byte, error) {
+func OnOpenBooster(s *Session, body []byte) *Packet {
 	req := util.OpenBooster{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	res := util.BoosterContent{}
@@ -444,7 +442,7 @@ func OnOpenBooster(s *Session, body []byte) ([]byte, error) {
 		}
 		cards := CollectionCard{}
 		if !db.Where("account_id = ? AND card_id = ? AND premium = ?", s.Account.ID, card.CardID, card.Premium).First(&cards).RecordNotFound() {
-			db.Model(&cards).Update("num", cards.Num + 1)
+			db.Model(&cards).Update("num", cards.Num+1)
 		} else {
 			cards.AccountID = s.Account.ID
 			cards.CardID = card.CardID
@@ -456,14 +454,14 @@ func OnOpenBooster(s *Session, body []byte) ([]byte, error) {
 
 	}
 
-	return EncodeUtilResponse(226, &res)
+	return EncodePacket(util.BoosterContent_ID, &res)
 }
 
-func OnGetDeck(s *Session, body []byte) ([]byte, error) {
+func OnGetDeck(s *Session, body []byte) *Packet {
 	req := util.GetDeck{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	id := req.GetDeck()
@@ -472,7 +470,7 @@ func OnGetDeck(s *Session, body []byte) ([]byte, error) {
 
 	// TODO: does this also need to allow brawl/arena decks? what about AI decks?
 	if deck.DeckType != int(shared.DeckType_PRECON_DECK) && deck.AccountID != s.Account.ID {
-		return nil, fmt.Errorf("received OnGetDeck for non-precon deck not owned by account")
+		log.Panicf("received OnGetDeck for non-precon deck not owned by account")
 	}
 
 	deckCards := []DeckCard{}
@@ -492,14 +490,14 @@ func OnGetDeck(s *Session, body []byte) ([]byte, error) {
 		res.Cards = append(res.Cards, cardData)
 	}
 
-	return EncodeUtilResponse(215, &res)
+	return EncodePacket(util.DeckContents_ID, &res)
 }
 
-func OnCreateDeck(s *Session, body []byte) ([]byte, error) {
+func OnCreateDeck(s *Session, body []byte) *Packet {
 	req := util.CreateDeck{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	deck := Deck{
@@ -526,14 +524,14 @@ func OnCreateDeck(s *Session, body []byte) ([]byte, error) {
 	info.HeroOverride = proto.Bool(false)
 	info.Validity = proto.Uint64(1)
 	res.Info = &info
-	return EncodeUtilResponse(217, &res)
+	return EncodePacket(util.DeckCreated_ID, &res)
 }
 
-func OnDeckSetData(s *Session, body []byte) ([]byte, error) {
+func OnDeckSetData(s *Session, body []byte) *Packet {
 	req := util.DeckSetData{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	id := req.GetDeck()
@@ -541,7 +539,7 @@ func OnDeckSetData(s *Session, body []byte) ([]byte, error) {
 	db.First(&deck, id)
 
 	if deck.AccountID != s.Account.ID {
-		return nil, fmt.Errorf("received DeckSetData for deck not owned by account")
+		log.Panicf("received DeckSetData for deck not owned by account")
 	}
 
 	// Clear the deck then re-populate it
@@ -583,28 +581,28 @@ func OnDeckSetData(s *Session, body []byte) ([]byte, error) {
 	res.Result = &result
 	res.MetaData = proto.Int64(id)
 
-	return EncodeUtilResponse(216, &res)
+	return EncodePacket(util.DBAction_ID, &res)
 }
 
-func OnSetCardBack(s *Session, body []byte) ([]byte, error) {
+func OnSetCardBack(s *Session, body []byte) *Packet {
 	req := util.SetCardBack{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	log.Printf("FIXME: SetCardBack stub = %s", req.String())
 	res := util.SetCardBackResponse{}
 	cardback := req.GetCardBack()
 	res.CardBack = &cardback
 	res.Success = proto.Bool(false)
-	return EncodeUtilResponse(292, &res)
+	return EncodePacket(util.SetCardBackResponse_ID, &res)
 }
 
-func OnRenameDeck(s *Session, body []byte) ([]byte, error) {
+func OnRenameDeck(s *Session, body []byte) *Packet {
 	req := util.RenameDeck{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	id := req.GetDeck()
 	deck := Deck{}
@@ -612,7 +610,7 @@ func OnRenameDeck(s *Session, body []byte) ([]byte, error) {
 	db.First(&deck, id)
 
 	if deck.AccountID != s.Account.ID {
-		return nil, fmt.Errorf("received RenameDeck for deck not owned by account")
+		log.Panicf("received RenameDeck for deck not owned by account")
 	}
 
 	deck.Name = name
@@ -622,21 +620,21 @@ func OnRenameDeck(s *Session, body []byte) ([]byte, error) {
 		Deck: proto.Int64(id),
 		Name: proto.String(name),
 	}
-	return EncodeUtilResponse(219, &res)
+	return EncodePacket(util.DeckRenamed_ID, &res)
 }
 
-func OnDeleteDeck(s *Session, body []byte) ([]byte, error) {
+func OnDeleteDeck(s *Session, body []byte) *Packet {
 	req := util.DeleteDeck{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	id := req.GetDeck()
 	deck := Deck{}
 	db.First(&deck, id)
 
 	if deck.AccountID != s.Account.ID {
-		return nil, fmt.Errorf("received DeleteDeck for deck not owned by account")
+		log.Panicf("received DeleteDeck for deck not owned by account")
 	}
 
 	db.Where("deck_id = ?", id).Delete(DeckCard{})
@@ -645,7 +643,7 @@ func OnDeleteDeck(s *Session, body []byte) ([]byte, error) {
 	res := util.DeckDeleted{
 		Deck: proto.Int64(id),
 	}
-	return EncodeUtilResponse(218, &res)
+	return EncodePacket(util.DeckDeleted_ID, &res)
 }
 
 func (s *Session) GetBoosterInfo(kind int32) *shared.BoosterInfo {

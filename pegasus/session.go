@@ -2,15 +2,21 @@ package pegasus
 
 import (
 	"errors"
-	"github.com/HearthSim/hs-proto-go/bnet/game_utilities_service"
+	"github.com/HearthSim/hs-proto-go/bnet/attribute"
 	"github.com/HearthSim/stove/bnet"
+	"github.com/golang/protobuf/proto"
 	"log"
 )
 
 type Session struct {
 	server   *Server
 	host     *bnet.Session
-	handlers map[int]UtilHandler
+	handlers map[PacketID]UtilHandler
+
+	// hostNotifications are notifications sent by bnet to pegasus
+	hostNotifications <-chan *bnet.Notification
+	// gameNotifications are notifications sent by pegasus to bnet
+	gameNotifications chan<- *bnet.Notification
 
 	Account
 	Draft
@@ -19,47 +25,71 @@ type Session struct {
 	Version
 }
 
-func NewSession(s *Server, hostSess *bnet.Session) *Session {
+func BindSession(s *Server, hostSess *bnet.Session) {
 	sess := &Session{}
 	sess.server = s
 	sess.host = hostSess
-	sess.handlers = map[int]UtilHandler{}
+	sess.handlers = map[PacketID]UtilHandler{}
 
 	sess.Account.Init(sess)
 	sess.Draft.Init(sess)
 	sess.Store.Init(sess)
 	sess.Subscription.Init(sess)
 	sess.Version.Init(sess)
-	return sess
+
+	notifyTx := make(chan *bnet.Notification, 1)
+	notifyRx := make(chan *bnet.Notification, 1)
+	sess.hostNotifications = notifyRx
+	sess.host.ServerNotifications = notifyRx
+	sess.gameNotifications = notifyTx
+	sess.host.ClientNotifications = notifyTx
+	go sess.HandleNotifications()
+}
+
+func (s *Session) HandleNotifications() {
+	quit := s.host.ChanForTransition(bnet.StateDisconnected)
+	defer s.host.DisconnectOnPanic()
+	for {
+		select {
+		case notify := <-s.hostNotifications:
+			s.handleNotification(notify)
+		case <-quit:
+			return
+		}
+	}
+}
+
+func (s *Session) handleNotification(n *bnet.Notification) {
+	switch n.Type {
+	case bnet.NotifyClientRequest:
+		s.HandleUtilRequest(n.Attributes)
+	}
 }
 
 var nyi = errors.New("not yet implemented")
 
-type UtilHandler func(sess *Session, req []byte) (res []byte, err error)
-
 // HandleUtilRequest processes an encoded client request from GameUtilities,
 // possibly returning an encoded response.
-func (s *Session) HandleUtilRequest(req *game_utilities_service.ClientRequest) ([]byte, error) {
-	packetId := -1
+func (s *Session) HandleUtilRequest(req []*attribute.Attribute) {
+	var packetId, systemId int32
 	// System 1 involves payment.  System 0 is everything else.
-	systemId := -1
 	route := uint64(0)
 	var data []byte
-	for _, attr := range req.Attribute {
+	for _, attr := range req {
 		key := attr.GetName()
 		val := attr.GetValue()
 		switch key {
 		case "p":
 			blob := val.GetBlobValue()
 			if len(blob) < 2 {
-				log.Panicf("bad util packet: %s", req.String())
+				log.Panicf("bad util packet: %v", req)
 			}
-			packetId = int(blob[0]) | int(blob[1])<<8
+			packetId = int32(int(blob[0]) | int(blob[1])<<8)
 			data = blob[2:]
 		case "v":
 			if val.IntValue != nil {
 				intVal := int(val.GetIntValue())
-				systemId = intVal % 10
+				systemId = int32(intVal % 10)
 			} else if val.StringValue != nil {
 				strVal := val.GetStringValue()
 				sysStr := strVal[len(strVal)-1:]
@@ -69,10 +99,10 @@ func (s *Session) HandleUtilRequest(req *game_utilities_service.ClientRequest) (
 				case "c": // ConnectAPI
 					systemId = 0
 				default:
-					log.Panicf("bad util packet: %s", req.String())
+					log.Panicf("bad util packet: %v", req)
 				}
 			} else {
-				log.Panicf("bad util packet: %s", req.String())
+				log.Panicf("bad util packet: %v", req)
 			}
 		case "r":
 			route = val.GetUintValue()
@@ -83,21 +113,50 @@ func (s *Session) HandleUtilRequest(req *game_utilities_service.ClientRequest) (
 	if route != s.route {
 		log.Printf("HandleUtilRequest: bad route")
 	}
-	return s.handleUtilRequest(systemId, packetId, data)
+	attr := s.handleUtilRequest(systemId, packetId, data)
+	// We still send even if attr is empty, because every ClientRequest must
+	// have a ClientResponse.
+	s.gameNotifications <- &bnet.Notification{bnet.NotifyClientResponse, attr}
 }
 
-func (s *Session) handleUtilRequest(systemId, packetId int, req []byte) ([]byte, error) {
-	id := encodeUtilPacketId(systemId, packetId)
+func (s *Session) handleUtilRequest(systemId, packetId int32, req []byte) []*attribute.Attribute {
+	id := PacketID{packetId, systemId}
 	if handler, ok := s.handlers[id]; ok {
-		return handler(s, req)
-	} else {
-		log.Panicf("handler does not exist for util packet %d:%d", systemId, packetId)
+		pack := handler(s, req)
+		if pack == nil {
+			return nil
+		}
+		attr := make([]*attribute.Attribute, 2)
+		attr[0] = &attribute.Attribute{
+			Name: proto.String("t"),
+			Value: &attribute.Variant{
+				IntValue: proto.Int64(int64(pack.ID)),
+			},
+		}
+		attr[1] = &attribute.Attribute{
+			Name: proto.String("p"),
+			Value: &attribute.Variant{
+				BlobValue: pack.Body,
+			},
+		}
+		return attr
 	}
-	return nil, nyi
+	log.Panicf("handler does not exist for util packet %d:%d", systemId, packetId)
+	return nil
 }
 
-func (s *Session) RegisterUtilHandler(systemId, packetId int, handler UtilHandler) {
-	id := encodeUtilPacketId(systemId, packetId)
+func (s *Session) RegisterPacket(packetId interface{}, handler UtilHandler) {
+	id := packetIDFromProto(packetId)
+	s.registerUtilHandler(id.System, id.ID, handler)
+}
+
+func (s *Session) UnregisterPacket(packetId interface{}, handler UtilHandler) {
+	id := packetIDFromProto(packetId)
+	s.unregisterUtilHandler(id.System, id.ID, handler)
+}
+
+func (s *Session) registerUtilHandler(systemId, packetId int32, handler UtilHandler) {
+	id := PacketID{packetId, systemId}
 	if _, ok := s.handlers[id]; !ok {
 		s.handlers[id] = handler
 	} else {
@@ -105,8 +164,8 @@ func (s *Session) RegisterUtilHandler(systemId, packetId int, handler UtilHandle
 	}
 }
 
-func (s *Session) UnregisterUtilHandler(systemId, packetId int, handler UtilHandler) {
-	id := encodeUtilPacketId(systemId, packetId)
+func (s *Session) unregisterUtilHandler(systemId, packetId int32, handler UtilHandler) {
+	id := PacketID{packetId, systemId}
 	if _, ok := s.handlers[id]; ok {
 		delete(s.handlers, id)
 	} else {

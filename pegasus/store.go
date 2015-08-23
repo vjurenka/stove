@@ -8,12 +8,12 @@ import (
 type Store struct{}
 
 func (s *Store) Init(sess *Session) {
-	sess.RegisterUtilHandler(1, 237, OnGetBattlePayConfig)
-	sess.RegisterUtilHandler(1, 255, OnGetBattlePayStatus)
-	sess.RegisterUtilHandler(0, 279, OnPurchaseWithGold)
+	sess.RegisterPacket(util.GetBattlePayConfig_ID, OnGetBattlePayConfig)
+	sess.RegisterPacket(util.GetBattlePayStatus_ID, OnGetBattlePayStatus)
+	sess.RegisterPacket(util.PurchaseWithGold_ID, OnPurchaseWithGold)
 }
 
-func OnGetBattlePayConfig(s *Session, body []byte) ([]byte, error) {
+func OnGetBattlePayConfig(s *Session, body []byte) *Packet {
 	res := util.BattlePayConfigResponse{}
 	// Hardcode US Dollars until we setup the DB to handle other currencies
 	res.Currency = proto.Int32(1)
@@ -62,22 +62,22 @@ func OnGetBattlePayConfig(s *Session, body []byte) ([]byte, error) {
 			Items:            bundleItems,
 		})
 	}
-	return EncodeUtilResponse(238, &res)
+	return EncodePacket(util.BattlePayConfigResponse_ID, &res)
 }
 
-func OnGetBattlePayStatus(s *Session, body []byte) ([]byte, error) {
+func OnGetBattlePayStatus(s *Session, body []byte) *Packet {
 	res := util.BattlePayStatusResponse{}
 	status := util.BattlePayStatusResponse_PS_READY
 	res.Status = &status
 	res.BattlePayAvailable = proto.Bool(true)
-	return EncodeUtilResponse(265, &res)
+	return EncodePacket(util.BattlePayStatusResponse_ID, &res)
 }
 
-func OnPurchaseWithGold(s *Session, body []byte) ([]byte, error) {
+func OnPurchaseWithGold(s *Session, body []byte) *Packet {
 	req := util.PurchaseWithGold{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	product := ProductGoldCost{}
@@ -95,5 +95,5 @@ func OnPurchaseWithGold(s *Session, body []byte) ([]byte, error) {
 	result := util.PurchaseWithGoldResponse_PR_SUCCESS
 	res.Result = &result
 	res.GoldUsed = proto.Int64(product.Cost * int64(req.GetQuantity()))
-	return EncodeUtilResponse(280, &res)
+	return EncodePacket(util.PurchaseWithGoldResponse_ID, &res)
 }

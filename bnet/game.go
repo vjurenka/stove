@@ -6,15 +6,11 @@ import (
 	"log"
 )
 
-// A GameServer accepts clients to create GameSessions.
+// A GameServer accepts clients to create sessions.
 type GameServer interface {
-	Connect(sess *Session) GameSession
-}
-
-// A GameSession handles communication with the client that pertains to the state
-// of the game itself, as opposed to the Bnet system.
-type GameSession interface {
-	HandleUtilRequest(req *game_utilities_service.ClientRequest) ([]byte, error)
+	// Connect connects the bnet session to the game session.  The game server
+	// should set up the Client and ServerNotification channels on sess.
+	Connect(sess *Session)
 }
 
 type GameUtilitiesServiceBinder struct{}
@@ -78,7 +74,26 @@ func (s *GameUtilitiesService) ProcessClientRequest(body []byte) ([]byte, error)
 		return nil, err
 	}
 	log.Printf("req = %s", req.String())
-	return s.sess.game.HandleUtilRequest(&req)
+	token := s.sess.receivedToken
+	s.sess.ServerNotifications <- &Notification{
+		NotifyClientRequest,
+		req.Attribute,
+	}
+	s.sess.OnceNotified(NotifyClientResponse, func(n *Notification) {
+		log.Printf("received client response notification")
+		if len(n.Attributes) < 2 {
+			// Client will error otherwise
+			return
+		}
+		res := &game_utilities_service.ClientResponse{}
+		res.Attribute = n.Attributes
+		buf, err := proto.Marshal(res)
+		if err != nil {
+			log.Panicf("error: GameUtilitiesService: marshal: %v", err)
+		}
+		s.sess.Respond(token, buf)
+	})
+	return nil, nil
 }
 
 func (s *GameUtilitiesService) PresenceChannelCreated(body []byte) error {

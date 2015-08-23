@@ -5,6 +5,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"log"
 	"net"
+	"runtime/debug"
 	"sync"
 	"time"
 )
@@ -19,6 +20,13 @@ const (
 )
 
 type Session struct {
+	// ServerNotifications are notifications sent by the bnet server to the game
+	// server.
+	ServerNotifications chan<- *Notification
+	// ClientNotifications are notifications sent by the game server to the bnet
+	// server.
+	ClientNotifications <-chan *Notification
+
 	server *Server
 	conn   net.Conn
 
@@ -36,6 +44,8 @@ type Session struct {
 	responses map[uint32]chan []byte
 	// The token used for request/response pairs increments sequentially.
 	lastToken uint32
+	// This token is the most recently received token sent by the client.
+	receivedToken uint32
 
 	// This channel contains outgoing packets.
 	packetQueue chan []byte
@@ -47,7 +57,6 @@ type Session struct {
 	// consts defined above.
 	state int
 
-	game           GameSession
 	startedPlaying time.Time
 }
 
@@ -57,7 +66,7 @@ func NewSession(s *Server, c net.Conn) *Session {
 	sess.conn = c
 	sess.importMap = map[uint32]int{}
 	sess.responses = map[uint32]chan []byte{}
-	sess.packetQueue = make(chan []byte)
+	sess.packetQueue = make(chan []byte, 1)
 	sess.stateChange = sync.NewCond(&sess.stateMutex)
 	sess.state = StateConnecting
 	// The connection service export is implicity bound at index 0:
@@ -120,14 +129,37 @@ func (s *Session) QueuePacket(header *rpc.Header, buf []byte) error {
 
 // Goroutine to pump the outgoing packet queue
 func (s *Session) pumpPacketQueue() {
+	defer s.DisconnectOnPanic()
+	quit := s.ChanForTransition(StateDisconnected)
 	for {
-		packet := <-s.packetQueue
-		_, err := s.conn.Write(packet)
-		log.Printf("Wrote %d bytes", len(packet))
-		if err != nil {
-			log.Panicf("error: Session.WritePacketQueue failed: %v", err)
+		select {
+		case packet := <-s.packetQueue:
+			w, err := s.conn.Write(packet)
+			if w != len(packet) {
+				panic(err)
+			}
+			log.Printf("Wrote %d bytes", len(packet))
+			if err != nil {
+				log.Panicf("error: Session.WritePacketQueue failed: %v", err)
+			}
+		case <-quit:
+			return
 		}
 	}
+}
+
+func (s *Session) DisconnectOnPanic() {
+	if err := recover(); err != nil {
+		log.Printf("session error: %v\n=== STACK TRACE ===\n%s",
+			err, string(debug.Stack()))
+		log.Println("closing session")
+		s.conn.Close()
+	}
+}
+
+func (s *Session) Disconnect() {
+	s.conn.Close()
+	s.Transition(StateDisconnected)
 }
 
 func (s *Session) MakeRequestHeader(service Service, methodId, size int) *rpc.Header {
@@ -146,8 +178,12 @@ func (s *Session) MakeRequestHeader(service Service, methodId, size int) *rpc.He
 }
 
 func (s *Session) HandlePacket(header *rpc.Header, body []byte) {
+	if s.state == StateDisconnected {
+		panic("cannot handle packets from disconnected clients")
+	}
 	serviceId := int(header.GetServiceId())
 	methodId := int(header.GetMethodId())
+	s.receivedToken = header.GetToken()
 
 	if serviceId == 254 {
 		s.HandleResponse(header.GetToken(), body)
@@ -164,6 +200,17 @@ func (s *Session) HandlePacket(header *rpc.Header, body []byte) {
 				log.Panicf("error: Session.HandlePacket: respond: %v", err)
 			}
 		}
+	}
+}
+
+func (s *Session) Respond(token uint32, body []byte) {
+	err := s.QueuePacket(&rpc.Header{
+		ServiceId: proto.Uint32(254),
+		Token:     proto.Uint32(token),
+		Size:      proto.Uint32(uint32(len(body))),
+	}, body)
+	if err != nil {
+		log.Panicf("error: Session.Respond: %v", err)
 	}
 }
 
@@ -217,4 +264,14 @@ func (s *Session) WaitForTransition(state int) {
 	for s.state != state {
 		s.stateChange.Wait()
 	}
+}
+
+// ChanForTransition makes a channel that waits for the specified state.
+func (s *Session) ChanForTransition(state int) chan struct{} {
+	res := make(chan struct{}, 1)
+	go func() {
+		s.WaitForTransition(state)
+		res <- struct{}{}
+	}()
+	return res
 }

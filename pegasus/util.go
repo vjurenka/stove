@@ -1,35 +1,63 @@
 package pegasus
 
 import (
-	"github.com/HearthSim/hs-proto-go/bnet/attribute"
-	"github.com/HearthSim/hs-proto-go/bnet/game_utilities_service"
 	"github.com/golang/protobuf/proto"
+	"log"
+	"reflect"
 )
 
-// EncodeUtilResponse builds a buffer encoding the response packetId and the
-// protobuf message.
-func EncodeUtilResponse(packetId int32, msg proto.Message) ([]byte, error) {
-	body, err := proto.Marshal(msg)
-	if err != nil {
-		return nil, err
-	}
-	res := game_utilities_service.ClientResponse{}
-	res.Attribute = make([]*attribute.Attribute, 2)
-	res.Attribute[0] = &attribute.Attribute{
-		Name: proto.String("t"),
-		Value: &attribute.Variant{
-			IntValue: proto.Int64(int64(packetId)),
-		},
-	}
-	res.Attribute[1] = &attribute.Attribute{
-		Name: proto.String("p"),
-		Value: &attribute.Variant{
-			BlobValue: body,
-		},
-	}
-	return proto.Marshal(&res)
+type Packet struct {
+	Body   []byte
+	ID     int32
+	System int32
 }
 
-func encodeUtilPacketId(systemId, packetId int) int {
-	return systemId<<16 | packetId
+type PacketID struct {
+	ID     int32
+	System int32
+}
+
+type UtilHandler func(sess *Session, req []byte) *Packet
+
+// EncodePacket builds a Packet with the protobuf message and packet id.
+func EncodePacket(x interface{}, msg proto.Message) *Packet {
+	body, err := proto.Marshal(msg)
+	if err != nil {
+		panic(err)
+	}
+	id := packetIDFromProto(x)
+	return &Packet{body, id.ID, id.System}
+}
+
+// Grabs a packetId from proto data, given a proto PacketID enum value.
+func packetIDFromProto(x interface{}) PacketID {
+	res := PacketID{}
+	enumTy := reflect.TypeOf(x)
+	if enumTy.Kind() != reflect.Ptr {
+		enumTy = reflect.PtrTo(enumTy)
+	}
+	unmarshal, ok := enumTy.MethodByName("UnmarshalJSON")
+	if !ok {
+		log.Panicf("couldn't get UnmarshalJSON from type: %v", enumTy)
+	}
+	idV := reflect.New(enumTy.Elem())
+	sysV := reflect.New(enumTy.Elem())
+	idErr := unmarshal.Func.Call([]reflect.Value{
+		idV,
+		reflect.ValueOf([]byte(`"ID"`)),
+	})[0].Interface()
+	if idErr != nil {
+		panic(idErr.(error))
+	}
+	res.ID = int32(idV.Elem().Int())
+	sysErr := unmarshal.Func.Call([]reflect.Value{
+		sysV,
+		reflect.ValueOf([]byte(`"System"`)),
+	})[0].Interface()
+	if sysErr != nil {
+		res.System = 0
+	} else {
+		res.System = int32(sysV.Elem().Int())
+	}
+	return res
 }

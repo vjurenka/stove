@@ -15,7 +15,7 @@ type Subscription struct {
 }
 
 func (s *Subscription) Init(sess *Session) {
-	sess.RegisterUtilHandler(0, 314, OnUtilSubscribe)
+	sess.RegisterPacket(util.Subscribe_ID, OnUtilSubscribe)
 }
 
 func (s *Subscription) IsValid() bool {
@@ -27,7 +27,7 @@ func (s *Subscription) IsValid() bool {
 
 // Handle a client's subscribe request.  The response may specify a timeout,
 // after which an active client must resubscribe to renew their session.
-func OnUtilSubscribe(s *Session, body []byte) ([]byte, error) {
+func OnUtilSubscribe(s *Session, body []byte) *Packet {
 	if s.timeout == 0 {
 		s.timeout = 120 * time.Second
 	}
@@ -39,5 +39,5 @@ func OnUtilSubscribe(s *Session, body []byte) ([]byte, error) {
 	res.Route = proto.Uint64(s.route)
 	res.SupportedFeatures = proto.Uint64(3)
 	res.KeepAliveSecs = proto.Uint64(uint64(s.timeout.Seconds()))
-	return EncodeUtilResponse(315, &res)
+	return EncodePacket(util.SubscribeResponse_ID, &res)
 }

@@ -13,6 +13,6 @@ func NewServer(serv *bnet.Server) *Server {
 	return res
 }
 
-func (s *Server) Connect(sess *bnet.Session) bnet.GameSession {
-	return NewSession(s, sess)
+func (s *Server) Connect(sess *bnet.Session) {
+	BindSession(s, sess)
 }

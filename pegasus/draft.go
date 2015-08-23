@@ -1,19 +1,19 @@
 package pegasus
 
 import (
-	"fmt"
 	"github.com/HearthSim/hs-proto-go/pegasus/shared"
 	"github.com/HearthSim/hs-proto-go/pegasus/util"
 	"github.com/golang/protobuf/proto"
+	"log"
 	"time"
 )
 
 func (s *Draft) Init(sess *Session) {
-	sess.RegisterUtilHandler(0, 235, OnDraftBegin)
-	sess.RegisterUtilHandler(0, 244, OnDraftGetPicksAndContents)
-	sess.RegisterUtilHandler(0, 242, OnDraftRetire)
-	sess.RegisterUtilHandler(0, 245, OnDraftMakePick)
-	sess.RegisterUtilHandler(0, 287, OnDraftAckRewards)
+	sess.RegisterPacket(util.DraftBegin_ID, OnDraftBegin)
+	sess.RegisterPacket(util.DraftGetPicksAndContents_ID, OnDraftGetPicksAndContents)
+	sess.RegisterPacket(util.DraftRetire_ID, OnDraftRetire)
+	sess.RegisterPacket(util.DraftMakePick_ID, OnDraftMakePick)
+	sess.RegisterPacket(util.DraftAckRewards_ID, OnDraftAckRewards)
 }
 
 func MakeHeroChoices() (choices []DraftChoice) {
@@ -53,7 +53,7 @@ func ChoicesToCardDefs(choices []DraftChoice) (defs []*shared.CardDef) {
 	return defs
 }
 
-func OnDraftBegin(s *Session, body []byte) ([]byte, error) {
+func OnDraftBegin(s *Session, body []byte) *Packet {
 	deck := Deck{
 		AccountID:    s.Account.ID,
 		DeckType:     int(shared.DeckType_DRAFT_DECK),
@@ -77,14 +77,14 @@ func OnDraftBegin(s *Session, body []byte) ([]byte, error) {
 		DeckId:     proto.Int64(deck.ID),
 		ChoiceList: choiceList,
 	}
-	return EncodeUtilResponse(246, &res)
+	return EncodePacket(util.DraftBeginning_ID, &res)
 }
 
-func OnDraftGetPicksAndContents(s *Session, body []byte) ([]byte, error) {
+func OnDraftGetPicksAndContents(s *Session, body []byte) *Packet {
 	req := util.DraftGetPicksAndContents{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	draft := Draft{}
@@ -94,7 +94,7 @@ func OnDraftGetPicksAndContents(s *Session, body []byte) ([]byte, error) {
 			ErrorCode: &code,
 		}
 
-		return EncodeUtilResponse(251, &res)
+		return EncodePacket(util.DraftError_ID, &res)
 	}
 
 	choices := []DraftChoice{}
@@ -127,25 +127,25 @@ func OnDraftGetPicksAndContents(s *Session, body []byte) ([]byte, error) {
 		HeroDef:    &heroDef,
 	}
 
-	return EncodeUtilResponse(248, &res)
+	return EncodePacket(util.DraftChoicesAndContents_ID, &res)
 }
 
-func OnDraftMakePick(s *Session, body []byte) ([]byte, error) {
+func OnDraftMakePick(s *Session, body []byte) *Packet {
 	req := util.DraftMakePick{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	draft := Draft{}
 	if db.Where("not ended and account_id = ?", s.Account.ID).First(&draft).RecordNotFound() {
-		return nil, fmt.Errorf("received OnDraftMakePick for account with no active draft")
+		log.Panicf("received OnDraftMakePick for account with no active draft")
 	}
 	if req.GetSlot() != draft.CurrentSlot {
-		return nil, fmt.Errorf("received OnDraftMakePick for the wrong slot")
+		log.Panicf("received OnDraftMakePick for the wrong slot")
 	}
 	if req.GetDeckId() != draft.DeckID {
-		return nil, fmt.Errorf("received OnDraftMakePick for the wrong deck")
+		log.Panicf("received OnDraftMakePick for the wrong deck")
 	}
 	pick := DraftChoice{}
 	db.Where("draft_id = ? and choice_index = ?", draft.ID, req.GetIndex()).First(&pick)
@@ -186,7 +186,7 @@ func OnDraftMakePick(s *Session, body []byte) ([]byte, error) {
 		NextChoiceList: choices,
 	}
 
-	return EncodeUtilResponse(249, &res)
+	return EncodePacket(util.DraftChosen_ID, &res)
 }
 
 func MakeChest() (chest shared.RewardChest) {
@@ -218,16 +218,16 @@ func MakeChest() (chest shared.RewardChest) {
 	return chest
 }
 
-func OnDraftRetire(s *Session, body []byte) ([]byte, error) {
+func OnDraftRetire(s *Session, body []byte) *Packet {
 	req := util.DraftRetire{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	draft := Draft{}
 	if db.Where("not ended and account_id = ?", s.Account.ID).First(&draft).RecordNotFound() {
-		return nil, fmt.Errorf("received OnDraftRetire for account with no active draft")
+		log.Panicf("received OnDraftRetire for account with no active draft")
 	}
 	draft.Ended = true
 	draft.EndedAt = time.Now().UTC()
@@ -238,18 +238,18 @@ func OnDraftRetire(s *Session, body []byte) ([]byte, error) {
 		DeckId: req.DeckId,
 		Chest:  &chest,
 	}
-	return EncodeUtilResponse(247, &res)
+	return EncodePacket(util.DraftRetired_ID, &res)
 }
 
-func OnDraftAckRewards(s *Session, body []byte) ([]byte, error) {
+func OnDraftAckRewards(s *Session, body []byte) *Packet {
 	req := util.DraftAckRewards{}
 	err := proto.Unmarshal(body, &req)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	res := util.DraftRewardsAcked{
 		DeckId: req.DeckId,
 	}
-	return EncodeUtilResponse(288, &res)
+	return EncodePacket(util.DraftRewardsAcked_ID, &res)
 }

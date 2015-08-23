@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/HearthSim/hs-proto-go/bnet/rpc"
 	"github.com/golang/protobuf/proto"
-	"io"
 	"log"
 	"net"
 	"time"
@@ -61,6 +60,7 @@ func NewServer() *Server {
 	s.registerService(ChannelInvitationServiceBinder{})
 	s.registerService(FriendsServiceBinder{})
 	s.registerService(GameUtilitiesServiceBinder{})
+	s.registerService(GameMasterServiceBinder{})
 	s.registerService(PresenceServiceBinder{})
 	s.registerService(ResourcesServiceBinder{})
 	// Client exports:
@@ -94,27 +94,23 @@ func (s *Server) ListenAndServe(addr string) error {
 	}
 }
 
-func (s *Server) ConnectGameServer(client *Session, program string) GameSession {
+func (s *Server) ConnectGameServer(client *Session, program string) {
 	if serv, ok := s.gameServers[program]; ok {
-		return serv.Connect(client)
+		serv.Connect(client)
+	} else {
+		log.Panicf("Server.ConnectGameServer: unregistered game: %s", program)
 	}
-	log.Panicf("Server.ConnectGameServer: unregistered game: %s", program)
-	return nil
 }
 
 func (s *Server) handleClient(c net.Conn) {
 	c.SetDeadline(time.Time{})
 
 	sess := NewSession(s, c)
+	defer sess.DisconnectOnPanic()
 	buf := make([]byte, 0x1000)
 	for {
 		_, err := sess.conn.Read(buf[:2])
 		if err != nil {
-			if err == io.EOF {
-				fmt.Print("Client disconnected\n")
-				c.Close()
-				break
-			}
 			log.Panicf("error: Server.handleClient: length read: %v", err)
 		}
 		headerLen := int(buf[0])<<8 | int(buf[1])
