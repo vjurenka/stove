@@ -3,19 +3,50 @@ package pegasus
 import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
+	"os"
 	"time"
 )
 
 var db = openDB()
 
 func openDB() gorm.DB {
-	db, err := gorm.Open("sqlite3", "db/pegasus.db")
+	dbFile := os.Getenv("PEGASUS_DB")
+	if len(dbFile) == 0 {
+		dbFile = "db/pegasus.db"
+	}
+	db, err := gorm.Open("sqlite3", dbFile)
 	if err != nil {
 		panic(err)
 	}
 
 	db.SingularTable(true)
 	return db
+}
+
+func Migrate() {
+	db.LogMode(true)
+	err := db.AutoMigrate(
+		&Account{},
+		&AccountLicense{},
+		&Achieve{},
+		&Booster{},
+		&BoosterCard{},
+		&FavoriteHero{},
+		&Deck{},
+		&DeckCard{},
+		&License{},
+		&SeasonProgress{},
+		&Bundle{},
+		&ProductGoldCost{},
+		&Product{},
+		&Draft{},
+		&DraftChoice{},
+		&CollectionCard{},
+	).Error
+
+	if err != nil {
+		panic(err)
+	}
 }
 
 type Achieve struct {
