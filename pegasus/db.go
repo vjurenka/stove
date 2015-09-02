@@ -49,6 +49,18 @@ func Migrate() {
 	}
 }
 
+type Account struct {
+	ID        int64
+	BnetID    int
+	Gold      int64
+	Dust      int64
+	UpdatedAt time.Time
+	Flags     int64
+
+	Progress []SeasonProgress
+	Licenses []License
+}
+
 type Achieve struct {
 	ID        int32
 	AccountID int64

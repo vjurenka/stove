@@ -20,10 +20,14 @@ def main():
 	now = datetime.now()
 	updated_at = now
 	flags = None
+	dust = 100000
+	gold = 2000
 
-	cursor.execute("INSERT INTO account VALUES (?, ?, ?, ?)", (
+	cursor.execute("INSERT INTO account VALUES (?, ?, ?, ?, ?, ?)", (
 		None,
 		bnet_id,
+		gold,
+		dust,
 		updated_at,
 		flags
 	))

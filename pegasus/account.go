@@ -8,16 +8,6 @@ import (
 	"time"
 )
 
-type Account struct {
-	ID        int64
-	BnetID    int
-	UpdatedAt time.Time
-	Flags     int64
-
-	Progress []SeasonProgress
-	Licenses []License
-}
-
 func (v *Account) Init(sess *Session) {
 	// TODO: fetch the account using the bnet session
 	db.Find(&sess.Account)
@@ -182,13 +172,17 @@ func OnGetAccountInfo(s *Session, body []byte) *Packet {
 		return EncodePacket(util.CardValues_ID, &res)
 	case "ARCANE_DUST_BALANCE":
 		res := util.ArcaneDustBalance{}
-		res.Balance = proto.Int64(10000)
+		account := Account{}
+		db.Where("id = ?", s.Account.ID).First(&account)
+		res.Balance = proto.Int64(account.Dust)
 		return EncodePacket(util.ArcaneDustBalance_ID, &res)
 	case "GOLD_BALANCE":
 		res := util.GoldBalance{}
+		account := Account{}
+		db.Where("id = ?", s.Account.ID).First(&account)
 		res.Cap = proto.Int64(999999)
 		res.CapWarning = proto.Int64(2000)
-		res.CappedBalance = proto.Int64(1234)
+		res.CappedBalance = proto.Int64(account.Gold)
 		res.BonusBalance = proto.Int64(0)
 		return EncodePacket(util.GoldBalance_ID, &res)
 	case "HERO_XP":
