@@ -23,6 +23,7 @@ type Session struct {
 	Store
 	Subscription
 	Version
+	Crafting
 }
 
 func BindSession(s *Server, hostSess *bnet.Session) {
@@ -36,6 +37,7 @@ func BindSession(s *Server, hostSess *bnet.Session) {
 	sess.Store.Init(sess)
 	sess.Subscription.Init(sess)
 	sess.Version.Init(sess)
+	sess.Crafting.Init(sess)
 
 	notifyTx := make(chan *bnet.Notification, 1)
 	notifyRx := make(chan *bnet.Notification, 1)

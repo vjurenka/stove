@@ -162,6 +162,12 @@ type DbfCard struct {
 	IsCollectible bool
 	NameEnus      string
 	ClassID       int32
+	Rarity        int32
+	CardSet       int32
+	BuyPrice      int32
+	SellPrice     int32
+	GoldBuyPrice  int32
+	GoldSellPrice int32
 }
 
 type DbfCardBack struct {

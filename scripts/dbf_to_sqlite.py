@@ -47,6 +47,26 @@ def get_field(table, record, column, type):
 	return data
 
 
+def get_tag(e, tag):
+	elem = e.find('Tag[@enumID="%i"]' % (tag))
+	if elem is not None:
+		return int(elem.attrib["value"])
+	return 0
+
+
+def get_crafting_values(card_set, rarity):
+	if card_set not in (3, 13, 15):
+		return 0, 0, 0, 0
+	elif rarity == 1:
+		return 40, 5, 400, 50
+	elif rarity == 3:
+		return 100, 20, 800, 100
+	elif rarity == 4:
+		return 400, 100, 1600, 400
+	elif rarity == 5:
+		return 1600, 400, 3200, 1600
+	return 0, 0, 0, 0
+
 def main():
 	if len(sys.argv) < 3:
 		sys.stderr.write("USAGE: %s [datadir] [dbfile]\n" % (sys.argv[0]))
@@ -105,6 +125,18 @@ def main():
 	# Add card class
 	connection.execute("ALTER TABLE dbf_card ADD COLUMN class_id int")
 
+	# Add Rarity
+	connection.execute("ALTER TABLE dbf_card ADD COLUMN rarity int")
+
+	# Add Card Set
+	connection.execute("ALTER TABLE dbf_card ADD COLUMN card_set int")
+
+	# Add crafting values
+	connection.execute("ALTER TABLE dbf_card ADD COLUMN buy_price int")
+	connection.execute("ALTER TABLE dbf_card ADD COLUMN sell_price int")
+	connection.execute("ALTER TABLE dbf_card ADD COLUMN gold_buy_price int")
+	connection.execute("ALTER TABLE dbf_card ADD COLUMN gold_sell_price int")
+
 	cur = connection.cursor()
 	cur.execute("SELECT id, note_mini_guid FROM dbf_card")
 	rows = cur.fetchall()
@@ -120,11 +152,20 @@ def main():
 				continue
 			name = e.find('Tag[@enumID="185"]/enUS').text
 			connection.execute("UPDATE dbf_card SET name_enus = ? WHERE id = ?", (name, pk))
-			card_class_elem = e.find('Tag[@enumID="199"]')
-			card_class = 0
-			if card_class_elem is not None:
-				card_class = int(card_class_elem.attrib["value"])
-			connection.execute("UPDATE dbf_card SET class_id = ? WHERE id = ?", (card_class, pk))
+			card_set = get_tag(e, 183)
+			card_class = get_tag(e, 199)
+			rarity = get_tag(e, 203)
+			craft_cost, de_cost, gold_craft_cost, gold_de_cost = get_crafting_values(card_set, rarity)
+			vars = card_class, rarity, card_set, craft_cost, de_cost, gold_craft_cost, gold_de_cost, pk
+			connection.execute("""UPDATE dbf_card SET
+				class_id = ?,
+				rarity = ?,
+				card_set = ?,
+				buy_price = ?,
+				sell_price = ?,
+				gold_buy_price = ?,
+				gold_sell_price = ?
+			WHERE id = ?""", vars)
 
 	connection.commit()
 	connection.close()

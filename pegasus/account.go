@@ -168,6 +168,22 @@ func OnGetAccountInfo(s *Session, body []byte) *Packet {
 		return EncodePacket(util.ProfileDeckLimit_ID, &res)
 	case "CARD_VALUES":
 		res := util.CardValues{}
+		dbfCards := []DbfCard{}
+		db.Where("is_collectible = ? AND buy_price is not ?", true, 0).Find(&dbfCards)
+		for _, cards := range dbfCards {
+			card := &util.CardValue{}
+			cardPremium := &util.CardValue{}
+			card.Card = MakeCardDef(cards.ID, 0)
+			card.Buy = proto.Int32(cards.BuyPrice)
+			card.Sell = proto.Int32(cards.SellPrice)
+			card.Nerfed = proto.Bool(false)
+			cardPremium.Card = MakeCardDef(cards.ID, 1)
+			cardPremium.Buy = proto.Int32(cards.GoldBuyPrice)
+			cardPremium.Sell = proto.Int32(cards.GoldSellPrice)
+			cardPremium.Nerfed = proto.Bool(false)
+			res.Cards = append(res.Cards, card)
+			res.Cards = append(res.Cards, cardPremium)
+		}
 		res.CardNerfIndex = proto.Int32(0)
 		return EncodePacket(util.CardValues_ID, &res)
 	case "ARCANE_DUST_BALANCE":
