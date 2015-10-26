@@ -10,7 +10,8 @@ import (
 
 func (v *Account) Init(sess *Session) {
 	// TODO: fetch the account using the bnet session
-	db.Find(&sess.Account)
+	db.Find(v)
+	v.displayName = "FIXME"
 
 	sess.RegisterPacket(util.GetAccountInfo_ID, OnGetAccountInfo)
 	sess.RegisterPacket(util.UpdateLogin_ID, OnUpdateLogin)
