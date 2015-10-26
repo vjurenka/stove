@@ -13,6 +13,6 @@ func (v *Version) Init(sess *Session) {
 
 func OnAssetsVersion(s *Session, body []byte) *Packet {
 	res := util.AssetsVersionResponse{}
-	res.Version = proto.Int32(9786)
+	res.Version = proto.Int32(10604)
 	return EncodePacket(util.AssetsVersionResponse_ID, &res)
 }
