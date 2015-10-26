@@ -16,13 +16,15 @@ def generate_columns(table, columns):
 		"LocString": "text",
 		"AssetPath": "text",
 	}
+	primary_key = None
 	for name, type in columns:
 		cn = name.lower()
 		if type == "LocString":
 			cn += "_enus"
 		t = "%s %s" % (cn, types[type])
-		if cn == "id":
+		if cn in ("id", "unique_id") and not primary_key:
 			t += " primary key"
+			primary_key = cn
 		ret.append(t)
 
 	return ",\n".join(ret)
