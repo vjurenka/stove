@@ -50,8 +50,10 @@ func Migrate() {
 }
 
 type Account struct {
-	ID        int64
-	BnetID    int
+	// Lo part of the entity ID for the pegasus account
+	ID int64
+	// Lo part of the entity ID for the bnet account
+	BnetID    int64
 	Gold      int64
 	Dust      int64
 	UpdatedAt time.Time

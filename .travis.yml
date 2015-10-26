@@ -6,6 +6,7 @@ go:
 install:
   - go get github.com/HearthSim/stove
   - export PEGASUS_DB="$(pwd)/db/pegasus.db"
+  - export BNET_DB="$(pwd)/db/bnet.db"
   - ./bootstrap.sh
 notifications:
   email:

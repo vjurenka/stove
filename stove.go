@@ -19,6 +19,7 @@ func main() {
 
 	if config.Config.Migrate {
 		fmt.Printf("Performing database migration\n")
+		bnet.Migrate()
 		pegasus.Migrate()
 		return
 	}

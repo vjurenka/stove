@@ -26,6 +26,10 @@ type Session struct {
 	Crafting
 }
 
+const GameAccountEntityIDHi uint64 = (bnet.EntityIDKindGameAccount << 56) |
+	(bnet.EntityIDRegionTest << 32) |
+	(bnet.EntityIDGamePegasus)
+
 func BindSession(s *Server, hostSess *bnet.Session) {
 	sess := &Session{}
 	sess.server = s

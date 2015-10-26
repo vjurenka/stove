@@ -75,6 +75,7 @@ func (s *AuthServerService) Logon(body []byte) error {
 	}
 	log.Printf("req = %s", req.String())
 	s.program = req.GetProgram()
+	// TODO: pull account from db
 	log.Printf("logon request from %s", req.GetEmail())
 	s.client = s.sess.ImportedService("bnet.protocol.authentication.AuthenticationClient").(*AuthClientService)
 	s.FinishQueue()
@@ -115,6 +116,7 @@ func (s *AuthServerService) VerifyWebCredentials(body []byte) error {
 		return err
 	}
 	log.Printf("req = %s", req.String())
+	// TODO: verify from Account struct attached by Logon request
 	if string(req.GetWebCredentials()) == "0123456789abcdef0123456789abcdef" {
 		s.loggedIn = true
 	}
@@ -127,9 +129,11 @@ func (s *AuthServerService) CompleteLogin() error {
 		res.ErrorCode = proto.Uint32(ErrorNoAuth)
 	} else {
 		res.ErrorCode = proto.Uint32(ErrorOK)
-		res.Account = EntityId(0, 1)
+		// TODO: Make this data real.  ConnectGameServer needs to return the
+		// GameAccount EntityId.
+		res.Account = EntityId(72058118023938048, 1)
 		res.GameAccount = make([]*entity.EntityId, 1)
-		res.GameAccount[0] = EntityId(1, 1)
+		res.GameAccount[0] = EntityId(144115713527006023, 1)
 		res.ConnectedRegion = proto.Uint32(0x5553) // 'US'
 
 		if s.program == "WTCG" {
