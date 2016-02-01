@@ -33,6 +33,7 @@ func (v *Account) Init(sess *Session) {
 	sess.RegisterPacket(util.SetCardBack_ID, OnSetCardBack)
 	sess.RegisterPacket(util.GetAdventureProgress_ID, OnGetAdventureProgress)
 	sess.RegisterPacket(util.SetFavoriteHero_ID, OnSetFavoriteHero)
+	sess.RegisterPacket(util.GenericRequestList_ID, OnGenericRequest)
 }
 
 func OnAckCardSeen(s *Session, body []byte) *Packet {
@@ -46,18 +47,15 @@ func OnAckCardSeen(s *Session, body []byte) *Packet {
 }
 
 func OnCheckAccountLicenses(s *Session, body []byte) *Packet {
-	return OnCheckLicenses(true)
+	res := util.CheckAccountLicensesResponse{}
+	res.Success = proto.Bool(true)
+	return EncodePacket(util.CheckAccountLicensesResponse_ID, &res)
 }
 
 func OnCheckGameLicenses(s *Session, body []byte) *Packet {
-	return OnCheckLicenses(false)
-}
-
-func OnCheckLicenses(accountLevel bool) *Packet {
-	res := util.CheckLicensesResponse{}
-	res.AccountLevel = proto.Bool(accountLevel)
+	res := util.CheckGameLicensesResponse{}
 	res.Success = proto.Bool(true)
-	return EncodePacket(util.CheckLicensesResponse_ID, &res)
+	return EncodePacket(util.CheckGameLicensesResponse_ID, &res)
 }
 
 func OnUpdateLogin(s *Session, body []byte) *Packet {
@@ -78,13 +76,19 @@ func OnGetAccountInfo(s *Session, body []byte) *Packet {
 		panic(err)
 	}
 	log.Printf("req = %s", req.String())
-	switch req.Request.String() {
-	case "CAMPAIGN_INFO":
+	return s.HandleAccountInfoRequest(*req.Request)
+}
+
+const AccoutInfoRequestBoosters = int32(util.GetAccountInfo_BOOSTERS)
+
+func (s *Session) HandleAccountInfoRequest(req util.GetAccountInfo_Request) *Packet {
+	switch req {
+	case util.GetAccountInfo_CAMPAIGN_INFO:
 		res := util.ProfileProgress{}
 		res.Progress = proto.Int64(6)  // ILLIDAN_COMPLETE
 		res.BestForge = proto.Int32(0) // Arena wins
 		return EncodePacket(util.ProfileProgress_ID, &res)
-	case "BOOSTERS":
+	case util.GetAccountInfo_BOOSTERS:
 		res := util.BoosterList{}
 		classicPacks := s.GetBoosterInfo(1)
 		gvgPacks := s.GetBoosterInfo(9)
@@ -99,11 +103,11 @@ func OnGetAccountInfo(s *Session, body []byte) *Packet {
 			res.List = append(res.List, tgtPacks)
 		}
 		return EncodePacket(util.BoosterList_ID, &res)
-	case "FEATURES":
+	case util.GetAccountInfo_FEATURES:
 		res := util.GuardianVars{}
 		res.ShowUserUI = proto.Int32(1)
 		return EncodePacket(util.GuardianVars_ID, &res)
-	case "MEDAL_INFO":
+	case util.GetAccountInfo_MEDAL_INFO:
 		res := util.MedalInfo{}
 		res.SeasonWins = proto.Int32(0)
 		res.Stars = proto.Int32(2)
@@ -111,9 +115,9 @@ func OnGetAccountInfo(s *Session, body []byte) *Packet {
 		res.StarLevel = proto.Int32(1)
 		res.LevelStart = proto.Int32(1)
 		res.LevelEnd = proto.Int32(3)
-		res.CanLose = proto.Bool(false)
+		res.CanLoseLevel = proto.Bool(false)
 		return EncodePacket(util.MedalInfo_ID, &res)
-	case "MEDAL_HISTORY":
+	case util.GetAccountInfo_MEDAL_HISTORY:
 		res := util.MedalHistory{}
 		for i := int32(1); i <= 3; i++ {
 			info := &util.MedalHistoryInfo{}
@@ -127,10 +131,10 @@ func OnGetAccountInfo(s *Session, body []byte) *Packet {
 			res.Medals = append(res.Medals, info)
 		}
 		return EncodePacket(util.MedalHistory_ID, &res)
-	case "NOTICES":
+	case util.GetAccountInfo_NOTICES:
 		res := util.ProfileNotices{}
 		return EncodePacket(util.ProfileNotices_ID, &res)
-	case "DECK_LIST":
+	case util.GetAccountInfo_DECK_LIST:
 		res := util.DeckList{}
 		basicDecks := []Deck{}
 		deckType := shared.DeckType_PRECON_DECK
@@ -147,7 +151,7 @@ func OnGetAccountInfo(s *Session, body []byte) *Packet {
 			res.Decks = append(res.Decks, info)
 		}
 		return EncodePacket(util.DeckList_ID, &res)
-	case "COLLECTION":
+	case util.GetAccountInfo_COLLECTION:
 		res := util.Collection{}
 		collectionCards := []CollectionCard{}
 		db.Where("account_id = ?", s.Account.ID).Find(&collectionCards)
@@ -163,11 +167,11 @@ func OnGetAccountInfo(s *Session, body []byte) *Packet {
 			res.Stacks = append(res.Stacks, stack1)
 		}
 		return EncodePacket(util.Collection_ID, &res)
-	case "DECK_LIMIT":
+	case util.GetAccountInfo_DECK_LIMIT:
 		res := util.ProfileDeckLimit{}
 		res.DeckLimit = proto.Int32(9)
 		return EncodePacket(util.ProfileDeckLimit_ID, &res)
-	case "CARD_VALUES":
+	case util.GetAccountInfo_CARD_VALUES:
 		res := util.CardValues{}
 		dbfCards := []DbfCard{}
 		db.Where("is_collectible = ? AND buy_price is not ?", true, 0).Find(&dbfCards)
@@ -187,13 +191,13 @@ func OnGetAccountInfo(s *Session, body []byte) *Packet {
 		}
 		res.CardNerfIndex = proto.Int32(0)
 		return EncodePacket(util.CardValues_ID, &res)
-	case "ARCANE_DUST_BALANCE":
+	case util.GetAccountInfo_ARCANE_DUST_BALANCE:
 		res := util.ArcaneDustBalance{}
 		account := Account{}
 		db.Where("id = ?", s.Account.ID).First(&account)
 		res.Balance = proto.Int64(account.Dust)
 		return EncodePacket(util.ArcaneDustBalance_ID, &res)
-	case "GOLD_BALANCE":
+	case util.GetAccountInfo_GOLD_BALANCE:
 		res := util.GoldBalance{}
 		account := Account{}
 		db.Where("id = ?", s.Account.ID).First(&account)
@@ -202,7 +206,7 @@ func OnGetAccountInfo(s *Session, body []byte) *Packet {
 		res.CappedBalance = proto.Int64(account.Gold)
 		res.BonusBalance = proto.Int64(0)
 		return EncodePacket(util.GoldBalance_ID, &res)
-	case "HERO_XP":
+	case util.GetAccountInfo_HERO_XP:
 		res := util.HeroXP{}
 		for i := 2; i <= 10; i++ {
 			info := &util.HeroXPInfo{}
@@ -215,10 +219,10 @@ func OnGetAccountInfo(s *Session, body []byte) *Packet {
 			res.XpInfos = append(res.XpInfos, info)
 		}
 		return EncodePacket(util.HeroXP_ID, &res)
-	case "NOT_SO_MASSIVE_LOGIN":
+	case util.GetAccountInfo_NOT_SO_MASSIVE_LOGIN:
 		res := util.NotSoMassiveLoginReply{}
 		return EncodePacket(util.NotSoMassiveLoginReply_ID, &res)
-	case "REWARD_PROGRESS":
+	case util.GetAccountInfo_REWARD_PROGRESS:
 		res := util.RewardProgress{}
 		nextMonth := time.Date(2015, 8, 1, 7, 0, 0, 0, time.UTC)
 		res.SeasonEnd = PegasusDate(nextMonth)
@@ -231,7 +235,7 @@ func OnGetAccountInfo(s *Session, body []byte) *Packet {
 		res.NextQuestCancel = PegasusDate(time.Now().UTC())
 		res.EventTimingMod = proto.Float32(0.291667)
 		return EncodePacket(util.RewardProgress_ID, &res)
-	case "PVP_QUEUE":
+	case util.GetAccountInfo_PVP_QUEUE:
 		res := util.PlayQueue{}
 		queue := shared.PlayQueueInfo{}
 		gametype := shared.BnetGameType_BGT_NORMAL
@@ -239,10 +243,10 @@ func OnGetAccountInfo(s *Session, body []byte) *Packet {
 		res.Queue = &queue
 		return EncodePacket(util.PlayQueue_ID, &res)
 
-	case "PLAYER_RECORD":
+	case util.GetAccountInfo_PLAYER_RECORD:
 		res := util.PlayerRecords{}
 		return EncodePacket(util.PlayerRecords_ID, &res)
-	case "CARD_BACKS":
+	case util.GetAccountInfo_CARD_BACKS:
 		res := util.CardBacks{}
 		dbfCardBacks := []DbfCardBack{}
 		res.DefaultCardBack = proto.Int32(0)
@@ -251,7 +255,7 @@ func OnGetAccountInfo(s *Session, body []byte) *Packet {
 			res.CardBacks = append(res.CardBacks, cardBack.ID)
 		}
 		return EncodePacket(util.CardBacks_ID, &res)
-	case "FAVORITE_HEROES":
+	case util.GetAccountInfo_FAVORITE_HEROES:
 		res := util.FavoriteHeroesResponse{}
 		favoriteHeros := []FavoriteHero{}
 		db.Where("account_id = ?", s.Account.ID).Find(&favoriteHeros)
@@ -267,15 +271,37 @@ func OnGetAccountInfo(s *Session, body []byte) *Packet {
 			res.FavoriteHeroes = append(res.FavoriteHeroes, fav)
 		}
 		return EncodePacket(util.FavoriteHeroesResponse_ID, &res)
-	case "ACCOUNT_LICENSES":
+	case util.GetAccountInfo_ACCOUNT_LICENSES:
 		res := util.AccountLicensesInfoResponse{}
 		return EncodePacket(util.AccountLicensesInfoResponse_ID, &res)
-	case "BOOSTER_TALLY":
+	case util.GetAccountInfo_BOOSTER_TALLY:
 		res := util.BoosterTallyList{}
 		return EncodePacket(util.BoosterTallyList_ID, &res)
+	case util.GetAccountInfo_CLIENT_OPTIONS:
+		return MakeFakeOptions()
 	default:
+		log.Printf("Unhandled GetAccountInfo request type: %s", req.String())
 		panic(nyi)
 	}
+}
+
+func OnGenericRequest(s *Session, body []byte) *Packet {
+	req := util.GenericRequestList{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("req = %s", req.String())
+	for _, r := range req.Requests {
+		switch *r.RequestId {
+		case int32(util.GetAccountInfo_ID):
+			p := s.HandleAccountInfoRequest(util.GetAccountInfo_Request(*r.RequestSubId))
+			s.SendUtilPacket(p)
+		default:
+			panic(nyi)
+		}
+	}
+	return nil
 }
 
 func OnGetAdventureProgress(s *Session, body []byte) *Packet {
@@ -300,6 +326,10 @@ func OnGetOptions(s *Session, body []byte) *Packet {
 		panic(err)
 	}
 	log.Printf("req = %s", req.String())
+	return MakeFakeOptions()
+}
+
+func MakeFakeOptions() *Packet {
 	res := util.ClientOptions{}
 	res.Options = append(res.Options, &util.ClientOption{
 		Index:    proto.Int32(1),

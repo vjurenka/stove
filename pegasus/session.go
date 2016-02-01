@@ -104,7 +104,7 @@ func (s *Session) HandleUtilRequest(req []*attribute.Attribute) {
 				strVal := val.GetStringValue()
 				sysStr := strVal[len(strVal)-1:]
 				switch sysStr {
-				case "b": // BattlePay
+				case "b": // BattleNet
 					systemId = 1
 				case "c": // ConnectAPI
 					systemId = 0
@@ -130,7 +130,7 @@ func (s *Session) HandleUtilRequest(req []*attribute.Attribute) {
 }
 
 func (s *Session) handleUtilRequest(systemId, packetId int32, req []byte) []*attribute.Attribute {
-	id := PacketID{packetId, systemId}
+	id := PacketID{packetId, 0}
 	if handler, ok := s.handlers[id]; ok {
 		pack := handler(s, req)
 		if pack == nil {
@@ -155,30 +155,70 @@ func (s *Session) handleUtilRequest(systemId, packetId int32, req []byte) []*att
 	return nil
 }
 
+func (s *Session) SendUtilPacket(p *Packet) {
+	if p.System != 0 {
+		panic("cannot send system 1 packets outside of a response")
+	}
+	attr := []*attribute.Attribute{}
+	attr = append(attr, &attribute.Attribute{
+		Name: proto.String("forwardToClient"),
+		Value: &attribute.Variant{
+			BoolValue: proto.Bool(true),
+		},
+	})
+	attr = append(attr, &attribute.Attribute{
+		Name: proto.String("message_type"),
+		Value: &attribute.Variant{
+			IntValue: proto.Int64(int64(p.ID)),
+		},
+	})
+	attr = append(attr, &attribute.Attribute{
+		Name: proto.String("targetId"),
+		Value: &attribute.Variant{
+			EntityidValue: bnet.EntityId(0, 0),
+		},
+	})
+	if len(p.Body) > 0 {
+		attr = append(attr, &attribute.Attribute{
+			Name: proto.String("message_size"),
+			Value: &attribute.Variant{
+				IntValue: proto.Int64(int64(len(p.Body))),
+			},
+		})
+		attr = append(attr, &attribute.Attribute{
+			Name: proto.String("fragment_0"),
+			Value: &attribute.Variant{
+				BlobValue: p.Body,
+			},
+		})
+	}
+	s.gameNotifications <- &bnet.Notification{"WTCG.UtilNotificationMessage", attr}
+}
+
 func (s *Session) RegisterPacket(packetId interface{}, handler UtilHandler) {
 	id := packetIDFromProto(packetId)
-	s.registerUtilHandler(id.System, id.ID, handler)
+	s.registerUtilHandler(id.ID, handler)
 }
 
 func (s *Session) UnregisterPacket(packetId interface{}, handler UtilHandler) {
 	id := packetIDFromProto(packetId)
-	s.unregisterUtilHandler(id.System, id.ID, handler)
+	s.unregisterUtilHandler(id.ID, handler)
 }
 
-func (s *Session) registerUtilHandler(systemId, packetId int32, handler UtilHandler) {
-	id := PacketID{packetId, systemId}
+func (s *Session) registerUtilHandler(packetId int32, handler UtilHandler) {
+	id := PacketID{packetId, 0}
 	if _, ok := s.handlers[id]; !ok {
 		s.handlers[id] = handler
 	} else {
-		log.Panicf("cannot overwrite existing handler for util packet %d:%d", systemId, packetId)
+		log.Panicf("cannot overwrite existing handler for util packet %d", packetId)
 	}
 }
 
-func (s *Session) unregisterUtilHandler(systemId, packetId int32, handler UtilHandler) {
-	id := PacketID{packetId, systemId}
+func (s *Session) unregisterUtilHandler(packetId int32, handler UtilHandler) {
+	id := PacketID{packetId, 0}
 	if _, ok := s.handlers[id]; ok {
 		delete(s.handlers, id)
 	} else {
-		log.Panicf("unregister called for non-existent handler for util packet %d:%d", systemId, packetId)
+		log.Panicf("unregister called for non-existent handler for util packet %d", packetId)
 	}
 }

@@ -37,7 +37,6 @@ func OnUtilSubscribe(s *Session, body []byte) *Packet {
 	s.subscribed = time.Now()
 	res := util.SubscribeResponse{}
 	res.Route = proto.Uint64(s.route)
-	res.SupportedFeatures = proto.Uint64(3)
 	res.KeepAliveSecs = proto.Uint64(uint64(s.timeout.Seconds()))
 	return EncodePacket(util.SubscribeResponse_ID, &res)
 }

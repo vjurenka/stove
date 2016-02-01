@@ -2,7 +2,6 @@ package game
 
 import (
 	"encoding/binary"
-	"github.com/HearthSim/hs-proto-go/pegasus/bobnet"
 	"github.com/HearthSim/hs-proto-go/pegasus/game"
 	"github.com/HearthSim/hs-proto-go/pegasus/shared"
 	"github.com/golang/protobuf/proto"
@@ -41,8 +40,8 @@ func NewSession(s *server, c net.Conn) *session {
 	res.quit = make(chan struct{})
 	res.out = make(chan *Packet, 1)
 	res.packetHandlers = map[int]func(*Packet){}
-	res.registerHandler(bobnet.Ping_ID, res.onPing)
-	res.registerHandler(bobnet.AuroraHandshake_ID, res.onHandshake)
+	res.registerHandler(game.Ping_ID, res.onPing)
+	res.registerHandler(game.Handshake_ID, res.onHandshake)
 	res.registerHandler(game.SpectatorHandshake_ID, res.onSpectatorHandshake)
 	return res
 }
@@ -53,11 +52,11 @@ func (s *session) registerHandler(x interface{}, handler func(*Packet)) {
 }
 
 func (s *session) onPing(p *Packet) {
-	s.writePacket(bobnet.Pong_ID, []byte{})
+	s.writePacket(game.Pong_ID, []byte{})
 }
 
 func (s *session) onHandshake(p *Packet) {
-	h := bobnet.AuroraHandshake{}
+	h := game.Handshake{}
 	err := proto.Unmarshal(p.Body, &h)
 	if err != nil {
 		panic(err)
