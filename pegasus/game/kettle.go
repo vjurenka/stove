@@ -82,6 +82,16 @@ func (c *KettleClient) SendOption(index, target, subOption, position int) {
 	c.write <- endTurnBuf
 }
 
+func (c *KettleClient) ChooseEntities(entities []int) {
+	packet := &KettlePacket{
+		Type:           "ChooseEntities",
+		GameID:         c.g.GameId,
+		ChooseEntities: entities,
+	}
+	packetBuf, _ := json.Marshal(packet)
+	c.write <- packetBuf
+}
+
 func (c *KettleClient) Close() {
 	c.conn.Close()
 }
@@ -125,6 +135,7 @@ func (c *KettleClient) readLoop() {
 		}
 		history := []*game.PowerHistoryData{}
 		deferredOptions := []*game.AllOptions{}
+		deferredEntityChoices := []*game.EntityChoices{}
 		if first {
 			history = append(history, &game.PowerHistoryData{
 				CreateGame: createGame,
@@ -153,6 +164,19 @@ func (c *KettleClient) readLoop() {
 					TagChange: tagChange,
 				})
 			case "ActionStart":
+				start := &game.PowerHistoryStart{}
+				s := packet.ActionStart
+				start.Type = (*game.HistoryBlock_Type)(proto.Int32(int32(s.SubType)))
+				start.Index = proto.Int32(int32(s.Index))
+				start.Source = proto.Int32(int32(s.EntityID))
+				start.Target = proto.Int32(int32(s.Target))
+				history = append(history, &game.PowerHistoryData{
+					PowerStart: start,
+				})
+			case "ActionEnd":
+				history = append(history, &game.PowerHistoryData{
+					PowerEnd: &game.PowerHistoryEnd{},
+				})
 			case "FullEntity":
 				full := &game.PowerHistoryEntity{}
 				e := packet.FullEntity.ToProto()
@@ -174,6 +198,9 @@ func (c *KettleClient) readLoop() {
 					options.Options = append(options.Options, o.ToProto())
 				}
 				deferredOptions = append(deferredOptions, options)
+			case "EntityChoices":
+				deferredEntityChoices = append(deferredEntityChoices,
+					packet.EntityChoices.ToProto())
 			default:
 				log.Panicf("unknown Kettle packet type: %s", packet.Type)
 			}
@@ -181,6 +208,9 @@ func (c *KettleClient) readLoop() {
 		c.g.OnHistory(history)
 		for _, options := range deferredOptions {
 			c.g.OnOptions(options)
+		}
+		for _, choices := range deferredEntityChoices {
+			c.g.OnEntityChoices(choices)
 		}
 	}
 }
@@ -204,20 +234,22 @@ func (c *KettleClient) writeLoop() {
 }
 
 type KettlePacket struct {
-	Type        string
-	GameID      string
-	CreateGame  *KettleCreateGame  `json:",omitempty"`
-	GameEntity  *KettleEntity      `json:",omitempty"`
-	Player      *KettlePlayer      `json:",omitempty"`
-	TagChange   *KettleTagChange   `json:",omitempty"`
-	ActionStart *KettleActionStart `json:",omitempty"`
-	FullEntity  *KettleFullEntity  `json:",omitempty"`
-	ShowEntity  *KettleFullEntity  `json:",omitempty"`
-	HideEntity  *KettleFullEntity  `json:",omitempty"`
-	MetaData    *KettleMetaData    `json:",omitempty"`
-	Choices     *KettleChoices     `json:",omitempty"`
-	Options     []*KettleOption    `json:",omitempty"`
-	SendOption  *KettleSendOption  `json:",omitempty"`
+	Type           string
+	GameID         string
+	CreateGame     *KettleCreateGame    `json:",omitempty"`
+	GameEntity     *KettleEntity        `json:",omitempty"`
+	Player         *KettlePlayer        `json:",omitempty"`
+	TagChange      *KettleTagChange     `json:",omitempty"`
+	ActionStart    *KettleActionStart   `json:",omitempty"`
+	FullEntity     *KettleFullEntity    `json:",omitempty"`
+	ShowEntity     *KettleFullEntity    `json:",omitempty"`
+	HideEntity     *KettleFullEntity    `json:",omitempty"`
+	MetaData       *KettleMetaData      `json:",omitempty"`
+	Choices        *KettleChoices       `json:",omitempty"`
+	Options        []*KettleOption      `json:",omitempty"`
+	SendOption     *KettleSendOption    `json:",omitempty"`
+	EntityChoices  *KettleEntityChoices `json:",omitempty"`
+	ChooseEntities []int                `json:",omitempty"`
 }
 
 type KettleCreateGame struct {
@@ -323,6 +355,15 @@ type KettleSendOption struct {
 	Position  int
 }
 
+type KettleEntityChoices struct {
+	ChoiceType int
+	CountMin   int
+	CountMax   int
+	Entities   []int
+	Source     int
+	PlayerId   int
+}
+
 func (o *KettleOption) ToProto() *game.Option {
 	res := &game.Option{}
 	var x = game.Option_Type(o.Type)
@@ -341,6 +382,19 @@ func (s *KettleSubOption) ToProto() *game.SubOption {
 	res.Id = proto.Int32(int32(s.ID))
 	for _, t := range s.Targets {
 		res.Targets = append(res.Targets, int32(t))
+	}
+	return res
+}
+
+func (c *KettleEntityChoices) ToProto() *game.EntityChoices {
+	res := &game.EntityChoices{}
+	res.ChoiceType = proto.Int32(int32(c.ChoiceType))
+	res.CountMin = proto.Int32(int32(c.CountMin))
+	res.CountMax = proto.Int32(int32(c.CountMax))
+	res.Source = proto.Int32(int32(c.Source))
+	res.PlayerId = proto.Int32(int32(c.PlayerId))
+	for _, ei := range c.Entities {
+		res.Entities = append(res.Entities, int32(ei))
 	}
 	return res
 }

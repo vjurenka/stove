@@ -58,7 +58,7 @@ type Game struct {
 
 	GameId            string
 	GameHandle        int32
-	Players           []GamePlayer
+	Players           []*GamePlayer
 	SpectatorPassword string
 	Address           net.TCPAddr
 
@@ -72,9 +72,10 @@ type Game struct {
 	kettle  *KettleClient
 
 	// all game state is protected by mutex
-	history       []*game.PowerHistoryData
-	currentPlayer int
-	lastOptionID  int
+	history             []*game.PowerHistoryData
+	currentPlayer       int
+	lastOptionID        int
+	lastEntityChoicesID int
 }
 
 type GamePlayer struct {
@@ -96,13 +97,15 @@ type GameResult struct{}
 func CreateGame(params *GameStartInfo) *Game {
 	res := &Game{}
 	mrand.Seed(time.Now().UnixNano())
-	res.Players = make([]GamePlayer, 2)
+	res.Players = make([]*GamePlayer, 2)
 	for i := 0; i < 2; i++ {
 		playerInfo := &params.Players[i]
-		res.Players[i].PlayerInfo = *playerInfo
-		res.Players[i].PlayerId = i
-		res.Players[i].ClientHandle = int64(mrand.Int31())
-		res.Players[i].Password = GenPassword()
+		p := &GamePlayer{}
+		p.PlayerInfo = *playerInfo
+		p.PlayerId = i + 1
+		p.ClientHandle = int64(mrand.Int31())
+		p.Password = GenPassword()
+		res.Players[i] = p
 	}
 	res.GameHandle = mrand.Int31()
 	res.GameId = fmt.Sprintf("Test %d", res.GameHandle)
@@ -115,6 +118,37 @@ func CreateGame(params *GameStartInfo) *Game {
 	return res
 }
 
+func (g *Game) OnTagChange(entity, tag, value int) {
+	// hack for making AI end turn
+	if entity == 3 {
+		// CURRENT_PLAYER => 1
+		if tag == 23 && value == 1 {
+			go func() {
+				// time.Sleep(1 * time.Second)
+				g.kettle.SendOption(0, 0, -1, 0)
+			}()
+		}
+	}
+	if tag == 23 && value == 1 {
+		log.Printf("--- OnTagChange --- Set current player to %d", entity-1)
+		g.currentPlayer = entity - 1
+	}
+}
+
+func (g *Game) OnEntityChoices(choices *game.EntityChoices) {
+	g.lastEntityChoicesID++
+	choices.Id = proto.Int32(int32(g.lastEntityChoicesID))
+	for _, client := range g.clients {
+		if client.player.PlayerId == int(*choices.PlayerId) {
+			buf, err := proto.Marshal(choices)
+			if err != nil {
+				panic(err)
+			}
+			client.writePacket(game.EntityChoices_ID, buf)
+		}
+	}
+}
+
 func (g *Game) OnHistory(histData []*game.PowerHistoryData) {
 	for _, hist := range histData {
 		if hist.CreateGame != nil {
@@ -122,6 +156,22 @@ func (g *Game) OnHistory(histData []*game.PowerHistoryData) {
 				id := *player.Id - 1
 				player.GameAccountId = g.Players[id].GameAccountId
 				player.CardBack = proto.Int32(26)
+				e := player.Entity
+				ei := int(*e.Id)
+				for _, t := range e.Tags {
+					g.OnTagChange(ei, int(*t.Name), int(*t.Value))
+				}
+			}
+		}
+		if hist.TagChange != nil {
+			t := hist.TagChange
+			g.OnTagChange(int(*t.Entity), int(*t.Tag), int(*t.Value))
+		}
+		if hist.FullEntity != nil {
+			e := hist.FullEntity
+			ei := int(*e.Entity)
+			for _, t := range e.Tags {
+				g.OnTagChange(ei, int(*t.Name), int(*t.Value))
 			}
 		}
 		g.history = append(g.history, hist)
@@ -145,17 +195,29 @@ func (g *Game) OnOptions(options *game.AllOptions) {
 	if err != nil {
 		panic(err)
 	}
-	g.clients[0].writePacket(game.AllOptions_ID, optionsBuf)
+	for _, client := range g.clients {
+		// TODO: spectator
+		log.Printf("--- OnOptions --- client.player.PlayerId=%d, g.currentPlayer=%d", client.player.PlayerId, g.currentPlayer)
+		if client.player.PlayerId == g.currentPlayer {
+			client.writePacket(game.AllOptions_ID, optionsBuf)
+		}
+	}
 }
 
 func (g *Game) ChooseOption(p *GamePlayer, id, index, target, subOption, position int) {
-	log.Panicf("nyi: ChooseOption(%v,%d,%d,%d,%d,%d)", p, id, index, target, subOption, position)
+	g.kettle.SendOption(index, target, subOption, position)
+	log.Printf("ChooseOption(%v,%d,%d,%d,%d,%d)", p, id, index, target, subOption, position)
+}
+
+func (g *Game) ChooseEntities(p *GamePlayer, id int, entities []int) {
+	log.Printf("ChooseEntities(%v, %d, %v)", p, id, entities)
+	g.kettle.ChooseEntities(entities)
 }
 
 func (g *Game) PlayerFromHandle(clientHandle int64) *GamePlayer {
 	for idx, player := range g.Players {
 		if player.ClientHandle == clientHandle {
-			return &g.Players[idx]
+			return g.Players[idx]
 		}
 	}
 	return nil

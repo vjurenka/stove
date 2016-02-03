@@ -105,6 +105,7 @@ func (s *session) setPlayer(player *GamePlayer) {
 	s.registerHandler(game.GetGameState_ID, s.onGetGameState)
 	s.registerHandler(game.UserUI_ID, s.onUserUI)
 	s.registerHandler(game.ChooseOption_ID, s.onChooseOption)
+	s.registerHandler(game.ChooseEntities_ID, s.onChooseEntities)
 	// TODO: mulliganing and some other stuff
 }
 
@@ -185,6 +186,20 @@ func (s *session) onChooseOption(p *Packet) {
 	s.g.ChooseOption(s.player, int(*option.Id),
 		int(*option.Index), int(*option.Target),
 		int(*option.SubOption), int(*option.Position))
+}
+
+func (s *session) onChooseEntities(p *Packet) {
+	ce := &game.ChooseEntities{}
+	err := proto.Unmarshal(p.Body, ce)
+	if err != nil {
+		panic(err)
+	}
+	es := []int{}
+	for _, ei := range ce.Entities {
+		es = append(es, int(ei))
+	}
+
+	s.g.ChooseEntities(s.player, int(*ce.Id), es)
 }
 
 func (s *session) Close() {
