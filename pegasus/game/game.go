@@ -214,6 +214,10 @@ func (g *Game) ChooseEntities(p *GamePlayer, id int, entities []int) {
 	g.kettle.ChooseEntities(entities)
 }
 
+func (g *Game) Concede(p *GamePlayer) {
+	g.kettle.Concede(p.PlayerId)
+}
+
 func (g *Game) PlayerFromHandle(clientHandle int64) *GamePlayer {
 	for idx, player := range g.Players {
 		if player.ClientHandle == clientHandle {

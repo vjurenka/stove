@@ -106,6 +106,7 @@ func (s *session) setPlayer(player *GamePlayer) {
 	s.registerHandler(game.UserUI_ID, s.onUserUI)
 	s.registerHandler(game.ChooseOption_ID, s.onChooseOption)
 	s.registerHandler(game.ChooseEntities_ID, s.onChooseEntities)
+	s.registerHandler(game.Concede_ID, s.onConcede)
 	// TODO: mulliganing and some other stuff
 }
 
@@ -200,6 +201,10 @@ func (s *session) onChooseEntities(p *Packet) {
 	}
 
 	s.g.ChooseEntities(s.player, int(*ce.Id), es)
+}
+
+func (s *session) onConcede(p *Packet) {
+	s.g.Concede(s.player)
 }
 
 func (s *session) Close() {

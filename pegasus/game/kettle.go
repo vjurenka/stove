@@ -92,6 +92,16 @@ func (c *KettleClient) ChooseEntities(entities []int) {
 	c.write <- packetBuf
 }
 
+func (c *KettleClient) Concede(playerId int) {
+	packet := &KettlePacket{
+		Type:    "Concede",
+		GameID:  c.g.GameId,
+		Concede: playerId,
+	}
+	packetBuf, _ := json.Marshal(packet)
+	c.write <- packetBuf
+}
+
 func (c *KettleClient) Close() {
 	c.conn.Close()
 }
@@ -250,6 +260,7 @@ type KettlePacket struct {
 	SendOption     *KettleSendOption    `json:",omitempty"`
 	EntityChoices  *KettleEntityChoices `json:",omitempty"`
 	ChooseEntities []int                `json:",omitempty"`
+	Concede        int                  `json:",omitempty"`
 }
 
 type KettleCreateGame struct {
