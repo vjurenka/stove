@@ -83,6 +83,13 @@ const AccoutInfoRequestBoosters = int32(util.GetAccountInfo_BOOSTERS)
 
 func (s *Session) HandleAccountInfoRequest(req util.GetAccountInfo_Request) *Packet {
 	switch req {
+	case util.GetAccountInfo_GAMES_PLAYED:
+		res := util.GamesInfo{}
+		res.GamesStarted = proto.Int32(0)
+		res.GamesWon = proto.Int32(0)
+		res.GamesLost = proto.Int32(0)
+		res.FreeRewardProgress = proto.Int32(0)
+		return EncodePacket(util.GamesInfo_ID, &res)
 	case util.GetAccountInfo_CAMPAIGN_INFO:
 		res := util.ProfileProgress{}
 		res.Progress = proto.Int64(6)  // ILLIDAN_COMPLETE
