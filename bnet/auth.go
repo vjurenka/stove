@@ -77,6 +77,7 @@ func (s *AuthServerService) Logon(body []byte) error {
 	s.program = req.GetProgram()
 	// TODO: pull account from db
 	log.Printf("logon request from %s", req.GetEmail())
+	s.email = string(req.GetEmail())
 	s.client = s.sess.ImportedService("bnet.protocol.authentication.AuthenticationClient").(*AuthClientService)
 	s.FinishQueue()
 	s.sess.Transition(StateLoggingIn)
@@ -116,8 +117,11 @@ func (s *AuthServerService) VerifyWebCredentials(body []byte) error {
 		return err
 	}
 	log.Printf("req = %s", req.String())
-	// TODO: verify from Account struct attached by Logon request
-	if string(req.GetWebCredentials()) == "0123456789abcdef0123456789abcdef" {
+	account := []Account{}
+	s.loggedIn = false
+	db.Where("email = ? and web_credential = ?", string(s.email), string(req.GetWebCredentials())).First(&account)
+	if len(account) != 0 {
+		log.Printf("account %s (BattleTag: %s) authorized", account[0].Email, account[0].BattleTag)
 		s.loggedIn = true
 	}
 	return s.CompleteLogin()

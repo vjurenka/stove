@@ -8,10 +8,11 @@ from datetime import datetime
 
 
 def main():
-	if len(sys.argv) < 2:
-		sys.stderr.write("USAGE: %s [dbfile]\n" % (sys.argv[0]))
+	if len(sys.argv) < 3:
+		sys.stderr.write("USAGE: %s [dbfile] [bnet dbfile]\n" % (sys.argv[0]))
 		exit(1)
 	dbfile = sys.argv[1]
+	dbfile_bnet = sys.argv[2]
 
 	connection = sqlite3.connect(dbfile)
 	cursor = connection.cursor()
@@ -70,6 +71,21 @@ def main():
 	connection.commit()
 	connection.close()
 
+	# create bnet.db with default account (based on stove/wiki)
+	connection_bnet = sqlite3.connect(dbfile_bnet)
+	cursor_bnet = connection_bnet.cursor()
+	cursor_bnet.execute("INSERT INTO account VALUES (?, ?, ?, ?, ?)", (
+		None,
+		"test@hearthsim.info",
+		"0123456789abcdef0123456789abcdef",
+		"Test#1234",
+		flags
+	))
+	account_bnet_id = cursor_bnet.lastrowid
+	assert account_bnet_id
+
+	connection_bnet.commit()
+	connection_bnet.close()
 
 if __name__ == "__main__":
 	main()
