@@ -17,6 +17,11 @@ if [ -e "$PEGASUS_DB" ]; then
 	exit 1
 fi
 
+if [ -z "$BNET_DB" ]; then
+	echo >&2 "BNET_DB is not defined, using default location $BASEDIR/db/bnet.db"
+	BNET_DB="$BASEDIR/db/bnet.db"
+fi
+
 echo "Fetching data files from $HSDATA"
 if [ ! -e "$DATADIR" ]; then
 	git clone --depth=1 "$HSDATA" "$DATADIR"
@@ -34,6 +39,6 @@ echo "Initializing database"
 "$BASEDIR/scripts/initialize_database.py" "$PEGASUS_DB"
 
 echo "Creating default user"
-"$BASEDIR/scripts/create_default_user.py" "$PEGASUS_DB"
+"$BASEDIR/scripts/create_default_user.py" "$PEGASUS_DB" "$BNET_DB"
 
 echo "Done."
