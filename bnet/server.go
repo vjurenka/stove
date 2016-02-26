@@ -46,12 +46,16 @@ type Server struct {
 
 	// Registered game servers are mapped by their product FourCCs.
 	gameServers map[string]GameServer
+
+	accountManager *AccountManager
 }
 
 func NewServer() *Server {
 	s := &Server{}
 	s.registeredServices = map[uint32]ServiceBinder{}
 	s.gameServers = map[string]GameServer{}
+
+	s.accountManager = NewAccountManager()
 
 	s.registerService(ConnectionServiceBinder{})
 	// Server exports:

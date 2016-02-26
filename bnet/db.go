@@ -69,7 +69,7 @@ const BnetAccountEntityIDHi uint64 = (EntityIDKindAccount << 56) |
 
 type Account struct {
 	// The lo part of the full entity id
-	ID            int64
+	ID            uint64
 	Email         string
 	WebCredential string
 	// Formatted as Name#1234
