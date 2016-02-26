@@ -26,7 +26,7 @@ func (e *amEntityId) GetLow() uint64 {
 	return 0
 }
 
-func (e *amEntityId) String() string { return "x" + string(e.High) + "," + string(e.Low) + "x" }
+func (e *amEntityId) String() string { return "[" + string(e.High) + "," + string(e.Low) + "]" }
 
 func amEntityId_convert(source *entity.EntityId) *amEntityId {
 	if source != nil {
@@ -36,6 +36,8 @@ func amEntityId_convert(source *entity.EntityId) *amEntityId {
 }
 
 type amPresenceKey struct {
+	High    uint64
+	Low     uint64
 	Program uint32
 	Group   uint32
 	Field   uint32
@@ -48,22 +50,21 @@ type amPresenceData struct {
 }
 
 type amAccount struct {
-	EntityId     amEntityId
-	BattleTag    string
-	Session      *Session
-	Subscribers  []*amAccount
-	PresenceData map[amPresenceKey]amPresenceData
+	EntityId  amEntityId
+	BattleTag string
+	Session   *Session
 }
 
 type amGameAccount struct {
-	EntityId    amEntityId
-	Subscribers []*amAccount
+	EntityId amEntityId
 }
 
 type AccountManager struct {
 	Accounts     map[amEntityId]*amAccount
 	GameAccounts map[amEntityId]*amGameAccount
 	BattleTags   map[string]amEntityId
+	PresenceData map[amPresenceKey]amPresenceData
+	Subscribers  []*amAccount
 }
 
 func NewAccountManager() *AccountManager {
@@ -72,6 +73,7 @@ func NewAccountManager() *AccountManager {
 		Accounts:     map[amEntityId]*amAccount{},
 		GameAccounts: map[amEntityId]*amGameAccount{},
 		BattleTags:   map[string]amEntityId{},
+		PresenceData: map[amPresenceKey]amPresenceData{},
 	}
 }
 
@@ -92,7 +94,7 @@ func (am *AccountManager) AddAccount(high uint64, low uint64, battletag string, 
 			return nil
 		}
 		// account doesn't exist yet
-		res := &amAccount{amEntityId{high, low}, battletag, session, []*amAccount{}, map[amPresenceKey]amPresenceData{}}
+		res := &amAccount{amEntityId{high, low}, battletag, session}
 		am.Accounts[amEntityId{high, low}] = res
 		am.BattleTags[battletag] = amEntityId{high, low}
 		return res
@@ -109,54 +111,46 @@ func (am *AccountManager) AddGameAccount(high uint64, low uint64) bool {
 			return false
 		}
 		// account doesn't exist yet
-		am.GameAccounts[amEntityId{high, low}] = &amGameAccount{amEntityId{high, low}, []*amAccount{}}
+		am.GameAccounts[amEntityId{high, low}] = &amGameAccount{amEntityId{high, low}}
 		return true
 	}
 	return false
 }
 
-func (am *AccountManager) GetPresenceData(e amEntityId, k amPresenceKey) attribute.Variant {
-	log.Printf("AccountManager: GetPresenceData: [%s %s]", e, k)
-	account, ok := am.Accounts[e]
-	if !ok {
-		return attribute.Variant{}
-	}
-	presence, ok := account.PresenceData[k]
+func (am *AccountManager) GetPresenceData(k amPresenceKey) attribute.Variant {
+	log.Printf("AccountManager: GetPresenceData: [%+v]", k)
+	presence, ok := am.PresenceData[k]
 	if !ok {
 		return attribute.Variant{}
 	}
 	return presence.data
 }
 
-func (am *AccountManager) UpdatePresenceData(e amEntityId, k amPresenceKey, v attribute.Variant) bool {
-	log.Printf("AccountManager: UpdatePresenceData: [%s %s] = %s", e, k, v)
-	account, ok := am.Accounts[e]
+func (am *AccountManager) UpdatePresenceData(k amPresenceKey, v attribute.Variant) bool {
+	log.Printf("AccountManager: UpdatePresenceData: [%+v] = %+v", k, v)
+	presence, ok := am.PresenceData[k]
 	if !ok {
-		// TODO: check if we can safely ignore this, or if it is needed to accept data for non-accounts
-		log.Panicf("AccountManager: Account is not registered")
-	}
-	presence, ok := account.PresenceData[k]
-	if !ok {
-		account.PresenceData[k] = amPresenceData{}
+		am.PresenceData[k] = amPresenceData{}
 	}
 	presence.data = v
 	presence.update_time = time.Now()
+	am.PresenceData[k] = presence
 	return true
 }
-func (am *AccountManager) RemovePresenceData(e amEntityId, k amPresenceKey) bool {
-	log.Printf("AccountManager: RemovePresenceData: [%s %s]", e, k)
-	delete(am.Accounts[e].PresenceData, k)
+func (am *AccountManager) RemovePresenceData(k amPresenceKey) bool {
+	log.Printf("AccountManager: RemovePresenceData: [%+v]", k)
+	delete(am.PresenceData, k)
 	return true
 }
 
 func (am *AccountManager) Subscribe(s amEntityId, d *amAccount) bool {
-	account, ok := am.Accounts[s]
+	/*_, ok := am.Accounts[s]
 	if !ok {
-		log.Printf("AccountManager: Account [%s] not present. Cannot subscribe.", s)
+		log.Printf("AccountManager: Account [%+v] not present. Cannot subscribe.", s)
 		return false
-	}
-	account.Subscribers = append(account.Subscribers, d)
-	log.Printf("AccountManager: Account [%s] will be notified about changes in [%s].", d, s)
+	}*/
+	am.Subscribers = append(am.Subscribers, d)
+	log.Printf("AccountManager: Account [%+v] will be notified about changes in [%+v].", d, s)
 	return true
 }
 
@@ -165,6 +159,6 @@ func (am AccountManager) Dump() {
 		log.Printf("AccountManager: No accounts stored.")
 	}
 	for k, v := range am.Accounts {
-		log.Printf("AccountManager: Account: %s [%s]", v.BattleTag, k.String())
+		log.Printf("AccountManager: Account: %s [%+v]", v.BattleTag, k)
 	}
 }

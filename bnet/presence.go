@@ -85,20 +85,19 @@ func (s *PresenceService) Update(body []byte) error {
 		f := fo.GetField()
 		k := f.GetKey()
 		//pk := PresenceKey{0,0,0,0,0,0}
-		e_key := amEntityId{e.GetHigh(), e.GetLow()}
-		p_key := amPresenceKey{k.GetProgram(), k.GetGroup(), k.GetField(), k.GetIndex()}
+		p_key := amPresenceKey{e.GetHigh(), e.GetLow(), k.GetProgram(), k.GetGroup(), k.GetField(), k.GetIndex()}
 		switch fo.GetOperation() {
 		case presence_types.FieldOperation_SET:
 			// SET
 			log.Printf("Presence field update [%s] = %s", fo, f.GetValue())
 			//var v attribute.Variant
 			v := *f.GetValue()
-			s.sess.server.accountManager.UpdatePresenceData(e_key, p_key, v)
+			s.sess.server.accountManager.UpdatePresenceData(p_key, v)
 		case presence_types.FieldOperation_CLEAR:
 			// assuming CLEAR
 			// TODO: Test it
 			log.Printf("Removing key from presence [%s]", fo)
-			s.sess.server.accountManager.RemovePresenceData(e_key, p_key)
+			s.sess.server.accountManager.RemovePresenceData(p_key)
 		default:
 			// wrong case, should we raise error?
 		}
@@ -116,14 +115,13 @@ func (s *PresenceService) Query(body []byte) error {
 	log.Printf("req = %s", req.String())
 
 	e := req.GetEntityId()
-	e_key := *amEntityId_convert(e)
 	res := presence_service.QueryResponse{}
 
 	for _, k := range req.GetKey() {
 		// build key
-		p_key := amPresenceKey{k.GetProgram(), k.GetGroup(), k.GetField(), k.GetIndex()}
-		log.Printf("Query for entity [%s %s]", e_key, p_key)
-		v := s.sess.server.accountManager.GetPresenceData(e_key, p_key)
+		p_key := amPresenceKey{e.GetHigh(), e.GetLow(), k.GetProgram(), k.GetGroup(), k.GetField(), k.GetIndex()}
+		log.Printf("Query for entity [%+v]", p_key)
+		v := s.sess.server.accountManager.GetPresenceData(p_key)
 		log.Printf("Obtained value: %s", v)
 		res.Field = append(res.Field, &presence_types.Field{
 			Key:   k,
