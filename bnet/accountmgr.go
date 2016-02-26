@@ -3,7 +3,7 @@ package bnet
 import (
 	"github.com/HearthSim/hs-proto-go/bnet/entity"
 	"github.com/HearthSim/hs-proto-go/bnet/attribute"
-	_ "time"
+	"time"
 	"log"
 	_ "fmt"
 )
@@ -28,7 +28,7 @@ func (e *amEntityId) GetLow() uint64 {
 
 func (e *amEntityId) String() string { return "x"+string(e.High)+","+string(e.Low)+"x" }
 
-func (e *amEntityId) FromEntityId(source *entity.EntityId) *amEntityId {
+func amEntityId_convert(source *entity.EntityId) *amEntityId {
 	if source != nil {
 		return &amEntityId{source.GetHigh(), source.GetLow()}
 	}
@@ -42,12 +42,17 @@ type amPresenceKey struct {
 	Index uint64
 }
 
+type amPresenceData struct {
+	data attribute.Variant
+	update_time time.Time
+}
+
 type amAccount struct {
 	EntityId amEntityId
 	BattleTag string
 	Session *Session
 	Subscribers []*amAccount
-	PresenceData map[amPresenceKey]attribute.Variant
+	PresenceData map[amPresenceKey]amPresenceData
 }
 
 type amGameAccount struct {
@@ -78,20 +83,21 @@ func (am *AccountManager) GetBattleTag(e amEntityId) string {
 	return v.BattleTag
 }
 
-func (am *AccountManager) AddAccount(high uint64, low uint64, battletag string, session *Session) bool {
+func (am *AccountManager) AddAccount(high uint64, low uint64, battletag string, session *Session) *amAccount {
 	_, ok := am.Accounts[amEntityId{high, low}]
 	if !ok {
 		// check low == 1 (Player account)
 		if low != 1 {
 			log.Printf("AccountManager: Cannot add non-account class entry")
-			return false
+			return nil
 		}
 		// account doesn't exist yet
-		am.Accounts[amEntityId{high, low}] = &amAccount{amEntityId{high, low}, battletag, session, []*amAccount{}, map[amPresenceKey]attribute.Variant{}}
-		am.BattleTags[battletag] = amEntityId{high, low} 
-		return true
+		res := &amAccount{amEntityId{high, low}, battletag, session, []*amAccount{}, map[amPresenceKey]amPresenceData{}}
+		am.Accounts[amEntityId{high, low}] = res
+		am.BattleTags[battletag] = amEntityId{high, low}
+		return res
 	}
-	return false
+	return nil
 }
 
 func (am *AccountManager) AddGameAccount(high uint64, low uint64) bool {
@@ -109,14 +115,42 @@ func (am *AccountManager) AddGameAccount(high uint64, low uint64) bool {
 	return false
 }
 
-func (am *AccountManager) UpdatePresenceData(k amPresenceKey, v attribute.Variant) bool {
-	log.Printf("AccountManager: UpdatePresenceData: %s = %s", k, v)
-
-	return True
+func (am *AccountManager) GetPresenceData(e amEntityId, k amPresenceKey) attribute.Variant {
+	log.Printf("AccountManager: GetPresenceData: [%s %s]", e, k)
+	account, ok := am.Accounts[e]
+	if !ok {
+		return attribute.Variant{}
+	}
+	presence, ok := account.PresenceData[k]
+	if !ok {
+		return attribute.Variant{}
+	}
+	return presence.data
 }
-func (am *AccountManager) RemovePresenceData(k amPresenceKey) bool {
-	log.Printf("AccountManager: RemovePresenceData: %s", k)
-	return True
+
+func (am *AccountManager) UpdatePresenceData(e amEntityId, k amPresenceKey, v attribute.Variant) bool {
+	log.Printf("AccountManager: UpdatePresenceData: [%s %s] = %s", e, k, v)
+	account, ok := am.Accounts[e]
+	if !ok {
+		// TODO: check if we can safely ignore this, or if it is needed to accept data for non-accounts
+		log.Panicf("AccountManager: Account is not registered")
+	}
+	presence, ok := account.PresenceData[k]
+	if !ok {
+		account.PresenceData[k] = amPresenceData{}
+	}
+	presence.data = v
+	presence.update_time = time.Now()
+	return true
+}
+func (am *AccountManager) RemovePresenceData(e amEntityId, k amPresenceKey) bool {
+	log.Printf("AccountManager: RemovePresenceData: [%s %s]", e, k)
+	delete(am.Accounts[e].PresenceData, k)
+	return true
+}
+
+func (am *AccountManager) Subscribe(s amEntityId, d *amAccount) bool {
+	return true
 }
 
 func (am AccountManager) Dump() {
