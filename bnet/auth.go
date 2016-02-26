@@ -22,10 +22,12 @@ func (AuthServerServiceBinder) Bind(sess *Session) Service {
 type AuthServerService struct {
 	sess *Session
 
-	program  string
-	email    string
-	loggedIn bool
-	client   *AuthClientService
+	program   string
+	email     string
+	loggedIn  bool
+	battleTag string
+	client    *AuthClientService
+	ent_id    uint64
 }
 
 func (s *AuthServerService) Name() string {
@@ -123,6 +125,8 @@ func (s *AuthServerService) VerifyWebCredentials(body []byte) error {
 	if len(account) != 0 {
 		log.Printf("account %s (BattleTag: %s) authorized", account[0].Email, account[0].BattleTag)
 		s.loggedIn = true
+		s.battleTag = account[0].BattleTag
+		s.ent_id = account[0].ID
 	}
 	return s.CompleteLogin()
 }
@@ -135,9 +139,14 @@ func (s *AuthServerService) CompleteLogin() error {
 		res.ErrorCode = proto.Uint32(ErrorOK)
 		// TODO: Make this data real.  ConnectGameServer needs to return the
 		// GameAccount EntityId.
-		res.Account = EntityId(72058118023938048, 1)
+		//res.Account = EntityId(72058118023938048, 1)
+		res.Account = EntityId(72057594037927936+s.ent_id, 1)
+		s.sess.account = s.sess.server.accountManager.AddAccount(res.Account.GetHigh(), res.Account.GetLow(), s.battleTag, s.sess)
+		s.sess.server.accountManager.Dump()
 		res.GameAccount = make([]*entity.EntityId, 1)
-		res.GameAccount[0] = EntityId(144115713527006023, 1)
+		//res.GameAccount[0] = EntityId(144115713527006023, 1)
+		res.GameAccount[0] = EntityId(144115188075855872+s.ent_id, 2)
+		s.sess.server.accountManager.AddGameAccount(res.GameAccount[0].GetHigh(), res.GameAccount[0].GetLow())
 		res.ConnectedRegion = proto.Uint32(0x5553) // 'US'
 
 		if s.program == "WTCG" {
