@@ -1,2 +1,5 @@
 build
 *.db
+bootstrap.sh
+stove.conf
+

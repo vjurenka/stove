@@ -22,6 +22,11 @@ if [ -z "$BNET_DB" ]; then
 	BNET_DB="$BASEDIR/db/bnet.db"
 fi
 
+if [ -e "$BNET_DB" ]; then
+	echo >&2 "$BNET_DB already exists.  If you want to rerun the bootstrapper, remove it."
+	exit 1
+fi
+
 echo "Fetching data files from $HSDATA"
 if [ ! -e "$DATADIR" ]; then
 	git clone --depth=1 "$HSDATA" "$DATADIR"
