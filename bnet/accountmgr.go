@@ -52,6 +52,7 @@ type amPresenceData struct {
 type amAccount struct {
 	EntityId amEntityId
 	BattleTag string
+	Email string
 	Session *Session
 }
 
@@ -86,7 +87,7 @@ func (am *AccountManager) GetBattleTag(e amEntityId) string {
 	return v.BattleTag
 }
 
-func (am *AccountManager) AddAccount(high uint64, low uint64, battletag string, session *Session) *amAccount {
+func (am *AccountManager) AddAccount(high uint64, low uint64, battletag string, email string, session *Session) *amAccount {
 	/*_, ok := am.Accounts[amEntityId{high, low}]
 	if !ok {
 		log.Printf("AccountManager: AddAccount: account already created")
@@ -97,8 +98,8 @@ func (am *AccountManager) AddAccount(high uint64, low uint64, battletag string, 
 		return nil
 	}*/
 	// account doesn't exist yet
-	res := amAccount{amEntityId{high, low}, battletag, session}
-	log.Printf("AccountManager: AddAcount: %+v", res)
+	res := amAccount{amEntityId{high, low}, battletag, email, session}
+	log.Printf("AccountManager: AddAccount: %+v", res)
 	am.Accounts[amEntityId{high, low}] = &res
 	am.BattleTags[battletag] = amEntityId{high, low}
 	return &res

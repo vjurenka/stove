@@ -142,7 +142,7 @@ func (s *AuthServerService) CompleteLogin() error {
 		//res.Account = EntityId(72058118023938048, 1)
 		res.Account = EntityId(72058118023938048, s.ent_id)
 		//-res.Account = EntityId(72057594037927936+s.ent_id, 1)
-		s.sess.account = s.sess.server.accountManager.AddAccount(res.Account.GetHigh(), res.Account.GetLow(), s.battleTag, s.sess)
+		s.sess.account = s.sess.server.accountManager.AddAccount(res.Account.GetHigh(), res.Account.GetLow(), s.battleTag, s.email, s.sess)
 		//s.sess.server.accountManager.Dump()
 		res.GameAccount = make([]*entity.EntityId, 1)
 		//res.GameAccount[0] = EntityId(144115713527006023, 1)

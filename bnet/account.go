@@ -95,10 +95,12 @@ func (s *AccountService) Invoke(method int, body []byte) (resp []byte, err error
 }
 
 func (s *AccountService) GetGameAccount(body []byte) ([]byte, error) {
+	log.Printf("AccountService: GetGameAccount")
 	return nil, nyi
 }
 
 func (s *AccountService) GetAccount(body []byte) ([]byte, error) {
+	log.Printf("AccountService: GetAccount")
 	return nil, nyi
 }
 
@@ -131,10 +133,12 @@ func (s *AccountService) GetEBalance(body []byte) ([]byte, error) {
 }
 
 func (s *AccountService) Subscribe(body []byte) ([]byte, error) {
+	log.Printf("AccountService: Subscribe")
 	return nil, nyi
 }
 
 func (s *AccountService) Unsubscribe(body []byte) error {
+	log.Printf("AccountService: Unsubscribe")
 	return nyi
 }
 
@@ -167,6 +171,7 @@ func (s *AccountService) GetAccountState(body []byte) ([]byte, error) {
 }
 
 func (s *AccountService) GetGameAccountState(body []byte) ([]byte, error) {
+	log.Printf("AccountService: GetGameAccountState")
 	return nil, nyi
 }
 
