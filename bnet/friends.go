@@ -126,7 +126,7 @@ func (s *FriendsService) SubscribeToFriends(body []byte) ([]byte, error) {
 	receivedInvitations := []*invitation_types.Invitation{}
 
 
-	invitationRequests := []InvitationRequests{}
+	invitationRequests := []InvitationRequest{}
 	db.Where("invitee_id = ?", e.GetLow()).Find(&invitationRequests)
 	inv_id := uint64(1)
 
@@ -162,7 +162,31 @@ func (s *FriendsService) SendInvitation(body []byte) error {
 
 func (s *FriendsService) AcceptInvitation(body []byte) error {
 	log.Printf("FriendsService: Accept Invitation")
-	return nyi
+	log.Printf("req = %+v", body)
+	req := invitation_types.GenericRequest{}
+	err := proto.Unmarshal(body, &req)
+	if err != nil {
+			return err
+	}
+	log.Printf("req = %s", req.String())
+
+	iReq := InvitationRequest{}
+
+	db.Where("id = ?", req.GetInvitationId()).First(&iReq)
+
+	friend := Friend{}
+	friend.ID = iReq.InviterID
+	friend.FriendID = iReq.InviteeID
+	db.Create(friend)
+	friend.ID = iReq.InviteeID
+	friend.FriendID = iReq.InviterID
+	db.Create(friend)
+
+	db.Delete(&iReq)
+
+	// TODO: Notify both accounts (if online) about accepted friendship
+
+	return nil
 }
 
 func (s *FriendsService) RevokeInvitation(body []byte) error {

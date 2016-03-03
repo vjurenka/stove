@@ -27,8 +27,8 @@ func Migrate() {
 	db.LogMode(true)
 	err := db.AutoMigrate(
 		&Account{},
-		&Friends{},
-		&InvitationRequests{},
+		&Friend{},
+		&InvitationRequest{},
 	).Error
 
 	if err != nil {
@@ -94,13 +94,14 @@ type AccountGameAccount struct {
 	GameAccountID int64
 }
 
-type Friends struct {
+type Friend struct {
 	ID uint64
-	friendID uint64	// pointing to Account table
+	FriendID uint64	// pointing to Account table
 }
 
-type InvitationRequests struct {
-	ID uint64
+type InvitationRequest struct {
+	ID uint64 // this is requestID, it is unique ID that represents friend request
+	InviterID uint64
 	InviteeID uint64
 	CreationTime time.Time
 	ExpirationTime time.Time
