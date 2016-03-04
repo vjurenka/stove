@@ -27,6 +27,8 @@ func Migrate() {
 	db.LogMode(true)
 	err := db.AutoMigrate(
 		&Account{},
+		&Friend{},
+		&InvitationRequest{},
 	).Error
 
 	if err != nil {
@@ -42,6 +44,7 @@ const (
 	EntityIDKindNone = iota
 	EntityIDKindAccount
 	EntityIDKindGameAccount
+	EntityIDKindChannel = 0x6
 )
 
 // Byte 12 is used for the region; bnet accounts are not region-specific, but
@@ -66,10 +69,13 @@ const (
 const BnetAccountEntityIDHi uint64 = (EntityIDKindAccount << 56) |
 	(EntityIDRegionTest << 32) |
 	(EntityIDGameNone)
+const BnetGameAccountEntityIDHi uint64 = (EntityIDKindGameAccount << 56) |
+	(EntityIDRegionTest << 32) |
+	(EntityIDGamePegasus)
 
 type Account struct {
 	// The lo part of the full entity id
-	ID            int64
+	ID            uint64
 	Email         string
 	WebCredential string
 	// Formatted as Name#1234
@@ -90,4 +96,18 @@ type AccountGameAccount struct {
 	ID            int64
 	AccountID     int64
 	GameAccountID int64
+}
+
+type Friend struct {
+	ID     int64
+	Source uint64 // pointing to Account table
+	Target uint64 // -""-
+}
+
+type InvitationRequest struct {
+	ID             uint64 // this is requestID, it is unique ID that represents friend request
+	InviterID      uint64
+	InviteeID      uint64
+	CreationTime   time.Time
+	ExpirationTime time.Time
 }
