@@ -75,7 +75,6 @@ func (s *AuthServerService) Logon(body []byte) error {
 	}
 	log.Printf("req = %s", req.String())
 	s.program = req.GetProgram()
-	// TODO: pull account from db
 	log.Printf("logon request from %s", req.GetEmail())
 	s.email = string(req.GetEmail())
 	s.client = s.sess.ImportedService("bnet.protocol.authentication.AuthenticationClient").(*AuthClientService)
@@ -117,11 +116,12 @@ func (s *AuthServerService) VerifyWebCredentials(body []byte) error {
 		return err
 	}
 	log.Printf("req = %s", req.String())
-	account := []Account{}
 	s.loggedIn = false
+	account := []Account{}
 	db.Where("email = ? and web_credential = ?", string(s.email), string(req.GetWebCredentials())).First(&account)
 	if len(account) != 0 {
-		log.Printf("account %s (BattleTag: %s) authorized", account[0].Email, account[0].BattleTag)
+		s.sess.account = account[0]
+		log.Printf("account %s (BattleTag: %s) authorized", s.sess.account.Email, s.sess.account.BattleTag)
 		s.loggedIn = true
 	}
 	return s.CompleteLogin()
@@ -135,9 +135,9 @@ func (s *AuthServerService) CompleteLogin() error {
 		res.ErrorCode = proto.Uint32(ErrorOK)
 		// TODO: Make this data real.  ConnectGameServer needs to return the
 		// GameAccount EntityId.
-		res.Account = EntityId(72058118023938048, 1)
+		res.Account = EntityId(BnetAccountEntityIDHi, s.sess.account.ID)
 		res.GameAccount = make([]*entity.EntityId, 1)
-		res.GameAccount[0] = EntityId(144115713527006023, 1)
+		res.GameAccount[0] = EntityId(BnetGameAccountEntityIDHi, s.sess.account.ID)
 		res.ConnectedRegion = proto.Uint32(0x5553) // 'US'
 
 		if s.program == "WTCG" {

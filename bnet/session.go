@@ -62,6 +62,7 @@ type Session struct {
 	state int
 
 	startedPlaying time.Time
+	account        Account
 }
 
 func NewSession(s *Server, c net.Conn) *Session {
