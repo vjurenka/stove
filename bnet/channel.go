@@ -124,3 +124,35 @@ func (s *ChannelInvitationService) UpdateChannelCount(body []byte) error {
 func (s *ChannelInvitationService) ListChannelCount(body []byte) ([]byte, error) {
 	return nil, nyi
 }
+
+// implement ChannelInvitationNotifyServiceBinder (bnet.protocol.channel_invitation.ChannelInvitationNotify)
+type ChannelInvitationNotifyServiceBinder struct{}
+
+func (ChannelInvitationNotifyServiceBinder) Bind(sess *Session) Service {
+	service := &ChannelInvitationNotifyService{sess}
+	return service
+}
+
+type ChannelInvitationNotifyService struct {
+	sess *Session
+}
+
+func (s *ChannelInvitationNotifyService) Name() string {
+	return "bnet.protocol.channel_invitation.ChannelInvitationNotify"
+}
+
+func (s *ChannelInvitationNotifyService) Methods() []string {
+	res := make([]string, 5)
+	res[1] = "NotifyReceivedInvitationAdded"
+	res[2] = "NotifyReceivedInvitationRemoved"
+	res[3] = "NotifyReceivedSuggestionAdded"
+	res[4] = "HasRoomForInvitation"
+	return res
+}
+
+func (s *ChannelInvitationNotifyService) Invoke(method int, body []byte) (resp []byte, err error) {
+	log.Panicf("ChannelInvitationNotifyService is a client export, not a server export")
+	return
+}
+
+
