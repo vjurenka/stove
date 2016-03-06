@@ -20,7 +20,8 @@ func (FriendsServiceBinder) Bind(sess *Session) Service {
 
 // The Friends service handles friends and friend requests.
 type FriendsService struct {
-	sess *Session
+	sess   *Session
+	client *FriendsNotifyService
 }
 
 func (s *FriendsService) Name() string {
@@ -151,6 +152,9 @@ func (s *FriendsService) SubscribeToFriends(body []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	s.client = s.sess.ImportedService("bnet.protocol.friends.FriendsNotify").(*FriendsNotifyService)
+
 	return resBuf, nil
 }
 
@@ -183,11 +187,48 @@ func (s *FriendsService) AcceptInvitation(body []byte) error {
 		}
 		db.Create(&friend2)
 		db.Delete(&ir[0])
+
+		// Notify client about removing invitation (because it was accepted)
+		notificationToInvitee := friends_service.InvitationNotification{
+			GameAccountId: EntityId(BnetAccountEntityIDHi, ir[0].InviteeID),
+			Invitation: &invitation_types.Invitation{
+				Id:              proto.Uint64(req.GetInvitationId()),
+				InviterIdentity: &entity.Identity{AccountId: EntityId(BnetAccountEntityIDHi, ir[0].InviterID), GameAccountId: EntityId(BnetGameAccountEntityIDHi, ir[0].InviterID)},
+				InviteeIdentity: &entity.Identity{AccountId: EntityId(BnetAccountEntityIDHi, ir[0].InviteeID), GameAccountId: EntityId(BnetGameAccountEntityIDHi, ir[0].InviteeID)},
+			},
+			Reason: proto.Uint32(0), // 0 = accepted, 1 = rejected, 2 = revoked ?
+		}
+
+		resBody, err := proto.Marshal(&notificationToInvitee)
+		if err != nil {
+			return err
+		}
+		resHeader := s.sess.MakeRequestHeader(s.client, 4, len(resBody))
+		err = s.sess.QueuePacket(resHeader, resBody)
+		if err != nil {
+			return err
+		}
+
+		// notify client about added friend
+		friendAddedNotificationToInvitee := friends_service.FriendNotification{
+			Target: &friends_types.Friend{
+				Id: EntityId(BnetAccountEntityIDHi, ir[0].InviteeID),
+				Role: []uint32{1},
+			},
+			GameAccountId: EntityId(BnetAccountEntityIDHi, ir[0].InviterID),
+		}
+		resBody2, err := proto.Marshal(&friendAddedNotificationToInvitee)
+		if err != nil {
+			return err
+		}
+		resHeader2 := s.sess.MakeRequestHeader(s.client, 1, len(resBody2))
+		err = s.sess.QueuePacket(resHeader2, resBody2)
+		if err != nil {
+			return err
+		}
 	} else {
 		log.Printf("Invitation request not found")
 	}
-
-	// TODO: Notify both accounts (if online) about accepted friendship
 
 	return nil
 }
@@ -247,4 +288,35 @@ func (s *FriendsService) UnsubscribeToFriends(body []byte) error {
 func (s *FriendsService) RevokeAllInvitations(body []byte) error {
 	log.Printf("FriendsService: Revoke All Invitations")
 	return nyi
+}
+
+//Implement client side RPC: bnet.protocol.friends.FriendsNotify
+type FriendsNotifyServiceBinder struct{}
+
+func (FriendsNotifyServiceBinder) Bind(sess *Session) Service {
+	service := &FriendsNotifyService{sess}
+	return service
+}
+
+type FriendsNotifyService struct {
+	sess *Session
+}
+
+func (s *FriendsNotifyService) Name() string {
+	return "bnet.protocol.friends.FriendsNotify"
+}
+
+func (s *FriendsNotifyService) Methods() []string {
+	res := make([]string, 6)
+	res[1] = "NotifyFriendAdded"
+	res[2] = "NotifyFriendRemoved"
+	res[3] = "NotifyReceivedInvitationAdded"
+	res[4] = "NotifyReceivedInvitationRemoved"
+	res[5] = "NotifySentInvitationRemoved"
+	return res
+}
+
+func (s *FriendsNotifyService) Invoke(method int, body []byte) (resp []byte, err error) {
+	log.Panicf("FriendsNotifyService is a client export, not a server export")
+	return
 }
