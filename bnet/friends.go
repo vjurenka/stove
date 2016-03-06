@@ -20,7 +20,8 @@ func (FriendsServiceBinder) Bind(sess *Session) Service {
 
 // The Friends service handles friends and friend requests.
 type FriendsService struct {
-	sess *Session
+	sess   *Session
+	client *FriendsNotifyService
 }
 
 func (s *FriendsService) Name() string {
@@ -146,6 +147,7 @@ func (s *FriendsService) SubscribeToFriends(body []byte) ([]byte, error) {
 	}
 
 	res.SentInvitations = []*invitation_types.Invitation{}
+	s.client = s.sess.ImportedService("bnet.protocol.friends.FriendsNotify").(*FriendsNotifyService)
 
 	resBuf, err := proto.Marshal(&res)
 	if err != nil {
@@ -247,4 +249,35 @@ func (s *FriendsService) UnsubscribeToFriends(body []byte) error {
 func (s *FriendsService) RevokeAllInvitations(body []byte) error {
 	log.Printf("FriendsService: Revoke All Invitations")
 	return nyi
+}
+
+//Implement client side RPC: bnet.protocol.friends.FriendsNotify
+type FriendsNotifyServiceBinder struct{}
+
+func (FriendsNotifyServiceBinder) Bind(sess *Session) Service {
+	service := &FriendsNotifyService{sess}
+	return service
+}
+
+type FriendsNotifyService struct {
+	sess *Session
+}
+
+func (s *FriendsNotifyService) Name() string {
+	return "bnet.protocol.friends.FriendsNotify"
+}
+
+func (s *FriendsNotifyService) Methods() []string {
+	res := make([]string, 6)
+	res[1] = "NotifyFriendAdded"
+	res[2] = "NotifyFriendRemoved"
+	res[3] = "NotifyReceivedInvitationAdded"
+	res[4] = "NotifyReceivedInvitationRemoved"
+	res[5] = "NotifySentInvitationRemoved"
+	return res
+}
+
+func (s *FriendsNotifyService) Invoke(method int, body []byte) (resp []byte, err error) {
+	log.Panicf("FriendsNotifyService is a client export, not a server export")
+	return
 }

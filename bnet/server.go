@@ -68,6 +68,7 @@ func NewServer() *Server {
 	s.registerService(ChallengeNotifyServiceBinder{})
 	s.registerService(NotificationListenerServiceBinder{})
 	s.registerService(ChannelInvitationNotifyServiceBinder{})
+	s.registerService(FriendsNotifyServiceBinder{})
 
 	return s
 }
